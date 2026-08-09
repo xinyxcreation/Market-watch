@@ -307,3 +307,12 @@ CoinGecko documente son API publique sans clé pour le prototypage et l'endpoint
 - Aucun rafraîchissement réseau lorsque l'onglet est caché.
 - Au retour sur l'onglet, une actualisation est relancée proprement.
 - Les historiques ne bloquent plus le chargement des prix.
+
+
+## V5.1
+- Actualités : toutes les 10 minutes.
+- Événements : toutes les heures.
+- Historique crypto 7J conservé localement.
+- Rafraîchissement historique : uniquement les 15 dernières minutes, fusionnées avec les 7 jours déjà stockés.
+- Les requêtes ne sont plus volontairement suspendues quand l'onglet est caché.
+- Attention : Firefox peut malgré tout réduire la fréquence des timers d'un onglet en arrière-plan ; une PWA sans serveur ne peut pas contourner cette limitation native.

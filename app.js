@@ -282,10 +282,12 @@ async function refreshEvents(){
 
 let refreshRunning=false;
 let lastHistoryRefresh=0;
-let lastSecondaryRefresh=0;
+let lastNewsRefresh=0;
+let lastEventsRefresh=0;
 const PRICE_REFRESH_MS=60_000;
 const HISTORY_REFRESH_MS=15*60_000;
-const SECONDARY_REFRESH_MS=10*60_000;
+const NEWS_REFRESH_MS=10*60_000;
+const EVENTS_REFRESH_MS=60*60_000;
 
 async function refreshPrices(){
   if(refreshRunning)return;
@@ -310,24 +312,38 @@ async function refreshPrices(){
 }
 
 async function refreshHistoryOnly(){
-  if(document.hidden || refreshRunning)return;
-  const now=Date.now();
-  if(now-lastHistoryRefresh<HISTORY_REFRESH_MS)return;
-  lastHistoryRefresh=now;
+  if(refreshRunning)return;
+  const nowMs=Date.now();
+  if(nowMs-lastHistoryRefresh<HISTORY_REFRESH_MS)return;
+  lastHistoryRefresh=nowMs;
   const assets=watch.filter(a=>a.type==="crypto");
   if(!assets.length)return;
 
   await Promise.all(assets.map(async a=>{
     const id=coinId(a.symbol), x=data.crypto[a.symbol];
     if(!id||!x)return;
+    const now=Math.floor(Date.now()/1000), from=now-15*60;
     try{
-      const hist=await gecko(`/coins/${id}/market_chart`,{vs_currency:"eur",days:"7"},12000);
-      const points=normalizeCryptoHistory(hist);
-      if(points.length>=2){
+      const hist=await gecko(`/coins/${id}/market_chart/range`,
+        {vs_currency:"eur",from,to:now},10000);
+      const recent=normalizeCryptoHistory(hist);
+      if(!recent.length)return;
+
+      const old=getCachedCryptoHistory(a.symbol,"7");
+      const cutoff=from*1000;
+      const merged=[...(old||[]).filter(p=>p.t<cutoff),...recent]
+        .sort((u,v)=>u.t-v.t);
+      const dedup=[];
+      for(const p of merged){
+        if(dedup.length && dedup[dedup.length-1].t===p.t) dedup[dedup.length-1]=p;
+        else dedup.push(p);
+      }
+      const final=dedup.filter(p=>p.t>=(now-7*86400)*1000);
+      if(final.length>=2){
         x.chartHistory ||= {};
-        x.chartHistory["7"]=points;
-        x.history=points.map(p=>p.v);
-        cacheCryptoHistory(a.symbol,"7",points);
+        x.chartHistory["7"]=final;
+        x.history=final.map(p=>p.v);
+        cacheCryptoHistory(a.symbol,"7",final);
       }
     }catch{}
   }));
@@ -336,13 +352,19 @@ async function refreshHistoryOnly(){
 }
 
 async function refreshSecondary(){
-  if(document.hidden)return;
+  if(refreshRunning)return;
   const now=Date.now();
-  if(now-lastSecondaryRefresh<SECONDARY_REFRESH_MS)return;
-  lastSecondaryRefresh=now;
-  const results=await Promise.allSettled([refreshNews(),refreshEvents()]);
-  marketNewsEnabled=results[0].status==="fulfilled";
-  eventsDataEnabled=results[1].status==="fulfilled";
+
+  if(now-lastNewsRefresh>=NEWS_REFRESH_MS){
+    lastNewsRefresh=now;
+    try{ await refreshNews(); marketNewsEnabled=true; }catch{ marketNewsEnabled=false; }
+  }
+
+  if(now-lastEventsRefresh>=EVENTS_REFRESH_MS){
+    lastEventsRefresh=now;
+    try{ await refreshEvents(); eventsDataEnabled=true; }catch{ eventsDataEnabled=false; }
+  }
+
   renderDashboard();
   renderNews();
   renderEvents();
@@ -900,18 +922,14 @@ refreshRealData();
 // Prices: every minute. History: at most every 15 min.
 // News/events: at most every 10 min. Nothing runs while the tab is hidden.
 setInterval(()=>{
-  if(!document.hidden) refreshPrices();
+  refreshPrices();
 },PRICE_REFRESH_MS);
 setInterval(()=>{
-  if(!document.hidden) refreshHistoryOnly();
+  refreshHistoryOnly();
 },60_000);
 setInterval(()=>{
-  if(!document.hidden) refreshSecondary();
+  refreshSecondary();
 },60_000);
-
-document.addEventListener("visibilitychange",()=>{
-  if(!document.hidden) refreshRealData();
-});
 
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 renderDashboard();
