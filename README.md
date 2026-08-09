@@ -287,3 +287,12 @@ CoinGecko documente son API publique sans clé pour le prototypage et l'endpoint
 - Le graphique ne fabrique plus une fausse courbe 7J à partir des cours courants.
 - Si CoinGecko est temporairement limité, le dernier historique réel en cache est réutilisé.
 - Le détail affiche explicitement `7J · historique en attente` au lieu de rester bloqué sur `Chargement`.
+
+
+## V4.9
+- Correction du blocage observé au démarrage.
+- Le prix réel crypto est maintenant affiché immédiatement après la réponse CoinGecko.
+- Les historiques 7J sont chargés ensuite en parallèle, un actif ne bloque plus les autres.
+- Les actualités et événements sont chargés après les cours et ne bloquent plus l'affichage principal.
+- Une indisponibilité temporaire de l'historique ne fait plus passer `CRYPTO` en indisponible si le prix réel est bien reçu.
+- Timeout séparé pour les requêtes prix/historique.

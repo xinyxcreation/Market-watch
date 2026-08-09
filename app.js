@@ -125,36 +125,77 @@ function applyStockQuote(a,q){
 }
 
 async function refreshCrypto(){
-  const ids=Object.values(COIN_IDS).join(",");
-  const q=await gecko("/simple/price",{ids,vs_currencies:"eur",include_24hr_change:"true",include_last_updated_at:"true"});
+  const assets=watch.filter(x=>x.type==="crypto");
+  if(!assets.length)return 0;
+
+  // 1) Get current prices first. The dashboard can become usable immediately.
+  const ids=[...new Set(assets.map(a=>coinId(a.symbol)).filter(Boolean))].join(",");
+  const q=await gecko("/simple/price",{
+    ids,vs_currencies:"eur",include_24hr_change:"true",include_last_updated_at:"true"
+  },10000);
+
   let ok=0;
-  for(const a of watch.filter(x=>x.type==="crypto")){
+  for(const a of assets){
     const id=coinId(a.symbol), item=q[id];
     if(!item || typeof item.eur!=="number")continue;
-    const x=data.crypto[a.symbol] ||= {name:a.symbol,price:item.eur,change:0,history:[]};
+    const x=data.crypto[a.symbol] ||= {name:a.symbol,price:item.eur,change:0,history:[],chartHistory:{}};
     x.price=item.eur;
     x.change=typeof item.eur_24h_change==="number"?item.eur_24h_change:0;
     x.lastUpdated=item.last_updated_at?item.last_updated_at*1000:Date.now();
+    ok++;
+  }
+
+  // Mark crypto as real immediately; don't make the UI wait for history.
+  cryptoDataEnabled=ok>0;
+  if(ok>0){
+    renderDashboard();
+    renderWatchlist();
+    applyScoreColors();
+    updateDataStatus();
+  }
+
+  // 2) Load the 7-day histories in parallel. A failure of one coin must not
+  // block the others or make the whole page look unavailable.
+  await Promise.all(assets.map(async a=>{
+    const id=coinId(a.symbol);
+    if(!id)return;
+    const x=data.crypto[a.symbol];
+    if(!x)return;
     try{
-      const hist=await gecko(`/coins/${id}/market_chart`,{vs_currency:"eur",days:"7"});
-      x.chartHistory={"7":(hist.prices||[]).map(p=>({t:p[0],v:p[1]})).filter(p=>Number.isFinite(p.v))};
-      x.history=x.chartHistory["7"].map(p=>p.v);
+      const hist=await gecko(`/coins/${id}/market_chart`,{
+        vs_currency:"eur",days:"7"
+      },12000);
+      const points=normalizeCryptoHistory(hist);
+      if(points.length>=2){
+        x.chartHistory ||= {};
+        x.chartHistory["7"]=points;
+        x.history=points.map(p=>p.v);
+        cacheCryptoHistory(a.symbol,"7",points);
+      }else{
+        const cached=getCachedCryptoHistory(a.symbol,"7");
+        if(cached.length>=2){
+          x.chartHistory ||= {};
+          x.chartHistory["7"]=cached;
+          x.history=cached.map(p=>p.v);
+        }
+      }
     }catch{
       const cached=getCachedCryptoHistory(a.symbol,"7");
       if(cached.length>=2){
-        x.chartHistory={"7":cached};
-        x.history=cached.map(p=>p.v);
-      }else{
         x.chartHistory ||= {};
-        x.history=Array.isArray(x.history)?x.history:[];
+        x.chartHistory["7"]=cached;
+        x.history=cached.map(p=>p.v);
       }
     }
-    if(x.chartHistory?.["7"]?.length>=2){
-      cacheCryptoHistory(a.symbol,"7",x.chartHistory["7"]);
-    }
-    ok++;
+  }));
+
+  // History is a secondary feature: update it when ready, without blocking
+  // prices/status/news/events.
+  if(ok>0){
+    renderDashboard();
+    renderWatchlist();
+    applyScoreColors();
   }
-  cryptoDataEnabled=ok>0;
   return ok;
 }
 
@@ -238,17 +279,30 @@ async function refreshEvents(){
 }
 
 async function refreshRealData(){
-  const results=await Promise.allSettled([refreshCrypto(),refreshStocks(),refreshNews(),refreshEvents()]);
-  cryptoDataEnabled=results[0].status==="fulfilled" && results[0].value>0;
-  stockDataEnabled=results[1].status==="fulfilled" && results[1].value>0;
+  // Current prices and histories are deliberately independent from news/events.
+  // Each source updates the UI as soon as it has usable data.
+  const priceResults=await Promise.allSettled([refreshCrypto(),refreshStocks()]);
+  cryptoDataEnabled=priceResults[0].status==="fulfilled" && priceResults[0].value>0;
+  stockDataEnabled=priceResults[1].status==="fulfilled" && priceResults[1].value>0;
   realDataEnabled=cryptoDataEnabled || stockDataEnabled;
-  realDataError=[results[0],results[1],results[2],results[3]].filter(r=>r.status==="rejected").map(r=>r.reason?.message||"Erreur").join(" · ");
+  realDataError=priceResults.filter(r=>r.status==="rejected")
+    .map(r=>r.reason?.message||"Erreur").join(" · ");
 
   renderDashboard();
   renderWatchlist();
+  applyScoreColors();
+  updateDataStatus();
+
+  // News/events are secondary and never block the prices or charts.
+  const secondary=await Promise.allSettled([refreshNews(),refreshEvents()]);
+  marketNewsEnabled=secondary[0].status==="fulfilled";
+  eventsDataEnabled=secondary[1].status==="fulfilled";
+  renderDashboard();
   renderNews();
   renderEvents();
   applyScoreColors();
+  updateDataStatus();
+
   const active=document.querySelector(".screen.active")?.id;
   if(active==="detail"){
     const title=document.querySelector("#detailContent h1")?.textContent||"";
@@ -256,7 +310,6 @@ async function refreshRealData(){
     const a=watch.find(v=>v.symbol===symbol);
     if(a)renderDetail(a.type,a.symbol);
   }
-  updateDataStatus();
   return realDataEnabled;
 }
 
