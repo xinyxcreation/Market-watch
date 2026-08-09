@@ -108,3 +108,12 @@ Les scores et indications sont des aides à la lecture du marché et ne constitu
 - Le liseré rouge/vert de seuil est maintenant aussi appliqué à toute la fiche détail.
 - Suppression des avertissements textuels « Sous ton mini / Au-dessus du maxi » affichés dans le dashboard.
 - Suppression des messages du type « Vérifie ton seuil personnalisé ».
+
+
+## V3.0
+- Remplacement du score unique par deux scores indépendants : achat et vente.
+- Niveaux : 0–29 faible intérêt, 30–49 intérêt modéré, 50–69 à surveiller, 70–84 intéressant, 85–100 très fort potentiel.
+- Chaque score explique le prix, la tendance, les actualités, les événements et la volatilité.
+- Actualités et événements sont affichés dans la fiche détaillée.
+- Message clair si aucune actualité importante ou aucun événement majeur proche.
+- La carte entière ouvre directement la fiche.

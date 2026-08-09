@@ -20,18 +20,18 @@ const defaultWatch = [
 ];
 
 const DEMO_NEWS = [
-  {asset:"NVDA",impact:"FORT",title:"L'IA reste un moteur majeur pour le secteur des semi-conducteurs",text:"Actualité de démonstration à remplacer par une source d'actualité configurée."},
-  {asset:"TSLA",impact:"MOYEN",title:"Automobile : annonces produits et production à surveiller",text:"Les annonces de nouveaux véhicules peuvent provoquer une volatilité importante."},
-  {asset:"BTC",impact:"FORT",title:"Crypto : le marché reste sensible aux annonces macroéconomiques",text:"Surveille les taux, la liquidité et les flux institutionnels."},
-  {asset:"ETH",impact:"MOYEN",title:"Ethereum : activité réseau et écosystème à suivre",text:"Indicateurs de démonstration pour la V1."}
+  {asset:"NVDA",impact:"FORT",direction:"buy",title:"L'IA reste un moteur majeur pour le secteur des semi-conducteurs",text:"Information favorable à surveiller.",sentiment:1},
+  {asset:"TSLA",impact:"MOYEN",direction:"neutral",title:"Automobile : annonces produits et production à surveiller",text:"Les annonces de nouveaux véhicules peuvent provoquer une volatilité importante.",sentiment:0},
+  {asset:"BTC",impact:"FORT",direction:"buy",title:"Crypto : le marché reste sensible aux annonces macroéconomiques",text:"Surveille les taux, la liquidité et les flux institutionnels.",sentiment:1},
+  {asset:"ETH",impact:"MOYEN",direction:"neutral",title:"Ethereum : activité réseau et écosystème à suivre",text:"Indicateurs de démonstration pour la V1.",sentiment:0}
 ];
 
 const DEMO_EVENTS = [
-  {date:"12 août",asset:"NVDA",title:"Événement technologique / actualité produit",kind:"Technologie",impact:"FORT"},
-  {date:"18 août",asset:"TSLA",title:"Annonce automobile à surveiller",kind:"Automobile",impact:"FORT"},
-  {date:"22 août",asset:"BTC",title:"Échéance / événement macro à surveiller",kind:"Crypto",impact:"MOYEN"},
-  {date:"28 août",asset:"TSLA",title:"Actualité potentielle autour d'un nouveau véhicule",kind:"Automobile",impact:"FORT"},
-  {date:"3 sept.",asset:"ETH",title:"Événement écosystème crypto",kind:"Crypto",impact:"MOYEN"}
+  {date:"12 août",asset:"NVDA",title:"Événement technologique / actualité produit",kind:"Technologie",impact:"FORT",direction:"buy"},
+  {date:"18 août",asset:"TSLA",title:"Annonce automobile à surveiller",kind:"Automobile",impact:"FORT",direction:"neutral"},
+  {date:"22 août",asset:"BTC",title:"Échéance / événement macro à surveiller",kind:"Crypto",impact:"MOYEN",direction:"neutral"},
+  {date:"28 août",asset:"TSLA",title:"Actualité potentielle autour d'un nouveau véhicule",kind:"Automobile",impact:"FORT",direction:"buy"},
+  {date:"3 sept.",asset:"ETH",title:"Événement écosystème crypto",kind:"Crypto",impact:"MOYEN",direction:"buy"}
 ];
 
 let watch = JSON.parse(localStorage.getItem("mw_watch") || "null") || defaultWatch;
@@ -60,14 +60,48 @@ function updateThreshold(i, field, value){
   const active=document.querySelector(".screen.active")?.id;
   if(active==="detail") renderDetail(watch[i].type, watch[i].symbol);
 }
-function score(a){
-  const x=assetInfo(a), z=zone(a);
-  let s=50 + Math.min(20,Math.abs(x.change)*4);
-  if(z.cls==="green")s+=20;
-  if(Math.abs(x.change)>=4)s+=10;
-  if(x.change<0)s-=5;
-  return Math.max(0,Math.min(100,Math.round(s)));
+function level(score){
+  if(score<30) return {label:"Faible intérêt",icon:"🔵",cls:"blue"};
+  if(score<50) return {label:"Intérêt modéré",icon:"🟡",cls:"yellow"};
+  if(score<70) return {label:"À surveiller",icon:"🟠",cls:"orange"};
+  if(score<85) return {label:"Intéressant",icon:"🟢",cls:"green"};
+  return {label:"Très fort potentiel",icon:"🔥",cls:"hot"};
 }
+function score(a){ return analysis(a).buy.score; }
+function analysis(a){
+  const x=assetInfo(a), p=x.price, range=Math.max(a.max-a.min,0.000001);
+  const pos=Math.max(0,Math.min(1,(p-a.min)/range));
+  const low=Math.round((1-pos)*25), high=Math.round(pos*25);
+  const trend=Math.max(-1,Math.min(1,x.change/5));
+  const buyTrend=Math.round(12.5+trend*12.5), sellTrend=Math.round(12.5-trend*12.5);
+  const news=DEMO_NEWS.filter(n=>n.asset===a.symbol), events=DEMO_EVENTS.filter(e=>e.asset===a.symbol);
+  const sentiment=news.reduce((v,n)=>v+(n.sentiment||0),0);
+  const buyNews=Math.max(0,Math.min(20,10+sentiment*5));
+  const sellNews=Math.max(0,Math.min(20,10-sentiment*5));
+  const buyEvent=events.length?Math.max(0,Math.min(15,8+events.reduce((v,e)=>v+(e.direction==="buy"?4:e.direction==="sell"?-4:0),0))):0;
+  const sellEvent=events.length?Math.max(0,Math.min(15,8+events.reduce((v,e)=>v+(e.direction==="sell"?4:e.direction==="buy"?-3:0),0))):0;
+  const volatility=Math.min(15,Math.round(Math.abs(x.change)*2.5));
+  const buy=Math.max(0,Math.min(100,Math.round(low+buyTrend+buyNews+buyEvent+volatility)));
+  const sell=Math.max(0,Math.min(100,Math.round(high+sellTrend+sellNews+sellEvent+volatility)));
+  return {
+    buy:{score:buy,level:level(buy),reasons:[
+      `📍 Prix : ${pos<.35?"proche de ta zone d'achat":"encore éloigné de ta zone d'achat"}`,
+      `📈 Tendance : ${x.change>1?"positive":x.change< -1?"négative":"stable"} (${x.change>=0?"+":""}${x.change.toFixed(2)} %)`,
+      `📰 Actualités : ${news.length?(sentiment>0?"plutôt favorables":"à surveiller"):"aucune information importante"}`,
+      `📅 Événement : ${events.length?"un événement majeur est à surveiller":"aucun événement majeur proche"}`,
+      `⚡ Volatilité : ${Math.abs(x.change)>=3?"élevée":"modérée"}`
+    ]},
+    sell:{score:sell,level:level(sell),reasons:[
+      `📍 Prix : ${pos>.65?"proche de ta zone de vente":"encore loin de ta zone de vente"}`,
+      `📉 Tendance : ${x.change< -1?"baissière":x.change>1?"haussière":"stable"} (${x.change>=0?"+":""}${x.change.toFixed(2)} %)`,
+      `📰 Actualités : ${news.length?(sentiment<0?"plutôt défavorables":"peu favorables à une vente"):"aucune information importante"}`,
+      `📅 Événement : ${events.length?"un événement majeur est à surveiller":"aucun événement majeur proche"}`,
+      `⚡ Volatilité : ${Math.abs(x.change)>=3?"élevée":"modérée"}`
+    ]},
+    news,events
+  };
+}
+
 function chartSvg(history,large=false){
   const w=large?900:240,h=large?190:58,p=10,min=Math.min(...history),max=Math.max(...history),range=max-min||1;
   const pts=history.map((v,i)=>`${p+i*(w-2*p)/(history.length-1)},${h-p-(v-min)*(h-2*p)/range}`).join(" ");
@@ -85,12 +119,12 @@ function card(a){
     </div>
     <div class="asset-price">
       <div><div class="price">${money(x.price,a.type)}</div><span class="${x.change>=0?"positive":"negative"}">${x.change>=0?"+":""}${x.change.toFixed(2)} %</span></div>
-      <div class="badge">⭐ ${s}/100</div>
+      <div class="badge">🟢 ${analysis(a).buy.score} · 🔴 ${analysis(a).sell.score}</div>
     </div>
     <div class="mini-chart">${chartSvg(x.history)}</div>
     <div class="range"><span>${money(a.min,a.type)}</span><span>${money(a.max,a.type)}</span></div>
     <div class="range-bar"><div class="range-fill" style="width:${pct}%"></div></div>
-    <button type="button" class="small-btn detail-button" data-detail="${a.type}:${a.symbol}">Voir le détail →</button>
+    
   </article>`;
 }
 function renderDashboard(){
@@ -117,21 +151,34 @@ function renderNews(){document.querySelector("#newsList").innerHTML=DEMO_NEWS.ma
 function renderEvents(){document.querySelector("#eventList").innerHTML=DEMO_EVENTS.map(e=>`<article class="event"><div class="date-box"><b>${esc(e.date.split(" ")[0])}</b><span>${esc(e.date.split(" ").slice(1).join(" "))}</span></div><div class="event-body"><span class="impact">${esc(e.impact)}</span><div class="meta">${esc(e.asset)} · ${esc(e.kind)}</div><h3>${esc(e.title)}</h3><p>Événement de démonstration — les sources réelles seront branchées via API.</p></div></article>`).join("")}
 function renderDetail(type,symbol){
   const a=watch.find(x=>x.type===type&&x.symbol===symbol)||{type,symbol,min:0,max:0};
-  const x=assetInfo(a),s=score(a),z=zone(a),index=watch.indexOf(a);
+  const x=assetInfo(a), an=analysis(a), z=zone(a), index=watch.indexOf(a);
   const border=z.state==="below" ? "threshold-below" : z.state==="above" ? "threshold-above" : "";
   const status=z.state==="below" ? "🔴 Sous le mini" : z.state==="above" ? "🟢 Au-dessus du maxi" : "Dans ta zone";
-  const detailRoot=document.querySelector("#detailContent");
-detailRoot.className=`detail-page ${border}`;
-detailRoot.innerHTML=`<div class="detail-head"><div><div class="eyebrow">${type==="crypto"?"CRYPTO":"BOURSE"}</div><h1>${esc(symbol)} · ${esc(x.name)}</h1></div><span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span></div>
-  <div class="detail-price">${money(x.price,type)} <span class="${x.change>=0?"positive":"negative"}" style="font-size:18px">${x.change>=0?"+":""}${x.change.toFixed(2)} %</span></div>
-  <div class="big-chart">${chartSvg(x.history,true)}</div>
-  <div class="metrics">
-    <div class="metric"><span class="muted">Score</span><b>${s}/100</b></div>
-    <div class="metric"><span class="muted">Mini</span><input class="metric-input" type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="min" value="${a.min}"></div>
-    <div class="metric"><span class="muted">Maxi</span><input class="metric-input" type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="max" value="${a.max}"></div>
-  </div>
-  <div class="settings-card" style="margin-top:12px"><h3>🧠 Analyse automatique</h3><p>Score basé sur la position dans ta zone, la variation récente et la volatilité disponible dans la V1.</p><p><b>${s>=75?"🔥 Intérêt élevé":s>=55?"🟠 À surveiller":"🔵 Calme"}</b> — cette indication ne constitue pas un conseil financier.</p></div>`;
+  const root=document.querySelector("#detailContent");
+  root.className=`detail-page ${border}`;
+  const reasons=arr=>arr.map(r=>`<li>${esc(r)}</li>`).join("");
+  const newsHtml=an.news.length?an.news.map(n=>`<article class="news-item"><span class="impact">${esc(n.impact)}</span><div class="meta">${esc(n.asset)} · Actualité</div><h3>${esc(n.title)}</h3><p>${esc(n.text)}</p></article>`).join(""):`<p class="empty-state">📰 Aucune information importante.</p>`;
+  const eventsHtml=an.events.length?an.events.map(e=>`<article class="event compact"><div class="date-box"><b>${esc(e.date.split(" ")[0])}</b><span>${esc(e.date.split(" ").slice(1).join(" "))}</span></div><div class="event-body"><span class="impact">${esc(e.impact)}</span><div class="meta">${esc(e.kind)}</div><h3>${esc(e.title)}</h3></div></article>`).join(""):`<p class="empty-state">📅 Aucun événement majeur proche.</p>`;
+  root.innerHTML=`
+    <div class="detail-head"><div><div class="eyebrow">${type==="crypto"?"CRYPTO":"BOURSE"}</div><h1>${esc(symbol)} · ${esc(x.name)}</h1></div><span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span></div>
+    <div class="detail-price">${money(x.price,type)} <span class="${x.change>=0?"positive":"negative"}" style="font-size:18px">${x.change>=0?"+":""}${x.change.toFixed(2)} %</span></div>
+    <div class="big-chart">${chartSvg(x.history,true)}</div>
+    <div class="metrics">
+      <div class="metric"><span class="muted">Mini</span><input class="metric-input" type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="min" value="${a.min}"></div>
+      <div class="metric"><span class="muted">Maxi</span><input class="metric-input" type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="max" value="${a.max}"></div>
+      <div class="metric"><span class="muted">Position</span><b>${Math.round(Math.max(0,Math.min(100,(x.price-a.min)/(a.max-a.min||1)*100)))}%</b></div>
+    </div>
+    <section class="analysis-section"><div class="section-head"><h2>🧠 Analyse automatique</h2></div>
+      <div class="opportunity-grid">
+        <article class="opportunity buy"><div class="opp-title">🟢 Opportunité d'achat</div><div class="opp-score">${an.buy.score}/100</div><div class="opp-level">${an.buy.level.icon} ${an.buy.level.label}</div><ul>${reasons(an.buy.reasons)}</ul></article>
+        <article class="opportunity sell"><div class="opp-title">🔴 Opportunité de vente</div><div class="opp-score">${an.sell.score}/100</div><div class="opp-level">${an.sell.level.icon} ${an.sell.level.label}</div><ul>${reasons(an.sell.reasons)}</ul></article>
+      </div>
+    </section>
+    <section class="analysis-section"><div class="section-head"><h2>📰 Actualités</h2></div>${newsHtml}</section>
+    <section class="analysis-section"><div class="section-head"><h2>📅 Événements</h2></div>${eventsHtml}</section>
+    <p class="analysis-note">Les scores sont des indicateurs d'analyse et ne constituent pas une recommandation financière.</p>`;
 }
+
 function show(screen){
   document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("active",s.id===screen));
   document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.open===screen));

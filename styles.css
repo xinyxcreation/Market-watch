@@ -137,3 +137,20 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
   border-color:transparent;
   box-shadow:none;
 }
+
+.analysis-section{margin:18px 0}
+.opportunity-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.opportunity{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}
+.opportunity.buy{border-left:4px solid var(--green)}
+.opportunity.sell{border-left:4px solid var(--red)}
+.opp-title{font-weight:850;font-size:15px}
+.opp-score{font-size:32px;font-weight:950;margin-top:8px}
+.opp-level{font-size:13px;font-weight:800;margin-bottom:10px}
+.opportunity ul{list-style:none;padding:0;margin:10px 0 0;display:grid;gap:8px}
+.opportunity li{font-size:12px;color:#c0c7cf;padding-top:7px;border-top:1px solid var(--line)}
+.empty-state{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;color:var(--muted);font-size:13px}
+.event.compact{margin-bottom:9px}
+.analysis-note{color:var(--muted);font-size:11px;text-align:center;margin:20px 0}
+.metric-input{display:block;width:100%;margin-top:5px;background:transparent;border:0;color:var(--text);font-size:18px;font-weight:850;line-height:1.2;outline:none;pointer-events:auto;cursor:text}
+.metric-input:focus{background:var(--panel2);border:1px solid var(--accent);border-radius:8px;padding:5px 7px;outline:2px solid var(--accent)}
+@media(max-width:700px){.opportunity-grid{grid-template-columns:1fr}}
