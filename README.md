@@ -117,3 +117,24 @@ Les scores et indications sont des aides à la lecture du marché et ne constitu
 - Actualités et événements sont affichés dans la fiche détaillée.
 - Message clair si aucune actualité importante ou aucun événement majeur proche.
 - La carte entière ouvre directement la fiche.
+
+
+## V3.1
+- Correction de la logique achat/vente.
+- Achat : score élevé lorsque le cours est proche ou sous le seuil minimum.
+- Vente : score élevé lorsque le cours est proche ou au-dessus du seuil maximum.
+- La tendance, les actualités, les événements et la volatilité sont secondaires au positionnement dans la zone personnalisée.
+- Ajout d'une explication visible dans l'analyse.
+
+
+## V3.2
+- Suppression des pastilles ambiguës « 🟢 57 · 🔴 37 ».
+- Affichage explicite « ACHAT » et « VENTE » sur les cartes.
+- Scores colorés selon un dégradé rouge → blanc → vert : 0 rouge, 50 blanc, 100 vert.
+- Même présentation claire dans la fiche détaillée.
+
+
+## V3.3
+- Les scores compacts des cartes utilisent maintenant uniquement les symboles Ⓐ pour Achat et Ⓥ pour Vente.
+- Le libellé texte ACHAT/VENTE a été retiré.
+- Les scores gardent le dégradé rouge → blanc → vert.
