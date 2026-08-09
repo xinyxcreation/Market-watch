@@ -116,42 +116,6 @@ function updateDataStatus(){
   }
 }
 
-function realSymbol(a){
-  if(a.type==="crypto") return a.symbol==="BTC"?"BINANCE:BTCUSDT":a.symbol==="ETH"?"BINANCE:ETHUSDT":a.symbol==="SOL"?"BINANCE:SOLUSDT":a.symbol;
-  return a.symbol;
-}
-function applyRealQuote(a,q){
-  if(!q || typeof q.c!=="number" || !q.c) return false;
-  const old=a.price;
-  a.price=q.c;
-  a.change=typeof q.dp==="number" ? q.dp : (old ? ((q.c-old)/old*100) : 0);
-  if(!Array.isArray(a.history)) a.history=[];
-  a.history=[...a.history.slice(-13),a.price];
-  return true;
-}
-async function refreshRealData(){
-  try{
-    const r=await fetch(`${API_BASE}/market`,{cache:"no-store"});
-    if(!r.ok) throw new Error(`API ${r.status}`);
-    const data=await r.json();
-    for(const a of watch){
-      const key=realSymbol(a);
-      const q=(a.type==="crypto"?data.crypto[key]:data.stocks[key]);
-      if(applyRealQuote(a,q)) realDataEnabled=true;
-    }
-    realDataError="";
-    renderDashboard();
-    renderWatchlist();
-    applyScoreColors();
-    const u=document.querySelector("#updated");
-    if(u) u.textContent="Données réelles • Finnhub • "+new Date().toLocaleTimeString("fr-FR");
-  }catch(e){
-    realDataError=e.message;
-    const u=document.querySelector("#updated");
-    if(u) u.textContent="Données de démonstration • API réelle indisponible";
-  }
-}
-
 function save(){localStorage.setItem("mw_watch",JSON.stringify(watch))}
 function money(v,type){return type==="crypto" ? new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:v<10?2:0}).format(v) : "$"+v.toFixed(2)}
 function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}

@@ -222,3 +222,11 @@ Cette version n'utilise plus de backend : elle appelle directement l'API Finnhub
 Une PWA statique ne peut pas garder une clé API secrète : la clé doit être envoyée au navigateur et peut donc être visible par toute personne ayant accès au site. Si le dépôt GitHub est public, la clé est également visible dans `config.js`. Pour une installation personnelle, cela peut être acceptable selon les conditions de Finnhub. Si la clé doit rester secrète, il faut un backend/proxy.
 
 Finnhub exige un token sur les appels GET et documente les symboles crypto de type `BINANCE:BTCUSDT`. 
+
+
+## V4.2
+- Correction du bug qui empêchait V4.1 d'utiliser Finnhub : l'ancien code backend `/api/market` était encore chargé après la nouvelle fonction.
+- Suppression du doublon de `refreshRealData()`.
+- Suppression de toute référence à `API_BASE`.
+- `config.js` ajouté au cache du Service Worker.
+- La PWA statique utilise maintenant uniquement l'API Finnhub directe.
