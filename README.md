@@ -1,0 +1,36 @@
+# Market Watch — PWA V1
+
+PWA légère, autonome et locale pour surveiller crypto + actions.
+
+## V1 incluse
+
+- Cours et variations
+- Seuil minimum / maximum personnalisés
+- Graphiques
+- Watchlist crypto et actions
+- Alertes de dépassement de seuil
+- Actualités associées (jeu de données démo dans cette version)
+- Calendrier d'événements importants (jeu de données démo)
+- Score d'intérêt automatique
+- Stockage local
+- Installation PWA / hors-ligne
+
+## Lancer
+
+Le service worker nécessite un serveur HTTP. Par exemple :
+
+```bash
+python3 -m http.server 8080
+```
+
+Puis ouvrir `http://localhost:8080`.
+
+## Données réelles
+
+La V1 est livrée avec un mode démonstration pour fonctionner immédiatement sans compte ni serveur.
+
+Les champs CoinGecko et Finnhub dans Réglages préparent le branchement de données réelles. Pour une version publique, il est recommandé de déplacer les clés/API côté backend plutôt que de les exposer dans le navigateur.
+
+## Important
+
+Les scores et indications sont des aides à la lecture du marché et ne constituent pas des conseils financiers.

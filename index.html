@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0d10">
+  <meta name="description" content="Market Watch — suivi personnel crypto et bourse">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <title>Market Watch</title>
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="brand">MARKET <span>WATCH</span></div>
+      <div id="updated" class="muted">Données locales de démonstration</div>
+    </div>
+    <button id="refreshBtn" class="icon-btn" title="Actualiser">↻</button>
+  </header>
+
+  <main>
+    <section id="dashboard" class="screen active">
+      <div class="hero-card">
+        <div>
+          <p class="eyebrow">MON MARCHÉ</p>
+          <h1>À surveiller</h1>
+          <p class="muted">Cours, seuils, actualités, événements et analyse réunis au même endroit.</p>
+        </div>
+        <div id="marketPulse" class="pulse">—</div>
+      </div>
+      <div id="alerts" class="alert-stack"></div>
+      <section>
+        <div class="section-head"><h2>₿ Crypto</h2><button class="small-btn" data-open="watchlist">Gérer</button></div>
+        <div id="cryptoCards" class="cards"></div>
+      </section>
+      <section>
+        <div class="section-head"><h2>📈 Bourse</h2><button class="small-btn" data-open="watchlist">Gérer</button></div>
+        <div id="stockCards" class="cards"></div>
+      </section>
+      <section>
+        <div class="section-head"><h2>🔥 À surveiller</h2><button class="small-btn" data-open="events">Tout voir</button></div>
+        <div id="watchNow" class="news-list"></div>
+      </section>
+    </section>
+
+    <section id="watchlist" class="screen">
+      <div class="page-title"><h1>Mes actifs</h1><p class="muted">Définis ta zone mini/maxi pour chaque valeur.</p></div>
+      <div class="add-row">
+        <input id="assetInput" placeholder="Ex. BTC, ETH, SOL, NVDA, TSLA">
+        <select id="assetType"><option value="crypto">Crypto</option><option value="stock">Action</option></select>
+        <button id="addAssetBtn" class="primary">Ajouter</button>
+      </div>
+      <div id="watchlistRows"></div>
+    </section>
+
+    <section id="detail" class="screen">
+      <button class="back-btn" data-open="dashboard">← Retour</button>
+      <div id="detailContent"></div>
+    </section>
+
+    <section id="news" class="screen">
+      <div class="page-title"><h1>📰 Actualités</h1><p class="muted">Informations liées à tes actifs.</p></div>
+      <div id="newsList" class="news-list"></div>
+    </section>
+
+    <section id="events" class="screen">
+      <div class="page-title"><h1>📅 Événements</h1><p class="muted">Résultats, IPO, produits, jeux, voitures et annonces importantes.</p></div>
+      <div id="eventList" class="timeline"></div>
+    </section>
+
+    <section id="settings" class="screen">
+      <div class="page-title"><h1>⚙️ Réglages</h1><p class="muted">La V1 fonctionne sans compte ni serveur.</p></div>
+      <div class="settings-card">
+        <h3>Sources optionnelles</h3>
+        <label>CoinGecko Demo API key <input id="cgKey" type="password" placeholder="Optionnel"></label>
+        <label>Finnhub API key <input id="fhKey" type="password" placeholder="Optionnel"></label>
+        <p class="hint">Sans clés API, l'application utilise ses données de démonstration. Les clés restent stockées uniquement sur cet appareil.</p>
+        <button id="saveSettings" class="primary">Enregistrer</button>
+      </div>
+      <div class="settings-card">
+        <h3>À propos</h3>
+        <p>Market Watch V1 — PWA locale. Les scores et indications sont des aides à la lecture du marché, pas des conseils financiers.</p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button data-open="dashboard" class="nav active"><span>⌂</span>Accueil</button>
+    <button data-open="watchlist" class="nav"><span>◉</span>Actifs</button>
+    <button data-open="news" class="nav"><span>▤</span>Actus</button>
+    <button data-open="events" class="nav"><span>◷</span>Agenda</button>
+    <button data-open="settings" class="nav"><span>⚙</span>Réglages</button>
+  </nav>
+
+  <script src="app.js"></script>
+</body>
+</html>
