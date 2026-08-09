@@ -274,3 +274,50 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
 .news-link{display:inline-block;margin-top:8px;color:var(--accent2);font-size:11px;font-weight:800;text-decoration:none}.news-link:hover{text-decoration:underline}
 @media(max-width:850px){.asset-list-row{grid-template-columns:1.2fr .8fr 100px}.asset-list-chart{grid-column:1/-1;height:48px}.asset-list-range{grid-column:1/-1;margin-top:-8px}}
 @media(max-width:600px){.asset-list-row{grid-template-columns:1fr auto;gap:7px 10px;padding:11px}.asset-list-main{grid-column:1/-1}.asset-list-price{grid-column:1}.asset-list-scores{grid-column:2;grid-row:2}.asset-list-chart{grid-column:1/-1;height:50px}.asset-list-range{grid-column:1/-1}.asset-list-price strong{font-size:17px}}
+
+/* V4.5 — accueil : séparation nette Crypto / Bourse, tout en gardant la liste */
+.asset-group{margin:0 0 24px}
+.asset-group:last-child{margin-bottom:0}
+.asset-group-head{
+  display:flex;align-items:center;justify-content:space-between;
+  margin:0 0 10px;padding:0 2px;
+}
+.asset-group-head h3{margin:0;font-size:16px;font-weight:850}
+.asset-group-head span{font-size:11px;color:var(--muted)}
+.asset-group .asset-list{display:grid;gap:10px}
+.asset-list-row{grid-template-columns:minmax(170px,1.25fr) minmax(150px,.9fr) 120px minmax(220px,1.35fr)}
+@media(max-width:820px){
+  .asset-list-row{grid-template-columns:1fr auto;gap:8px}
+  .asset-list-main{grid-column:1/-1}
+  .asset-list-scores{justify-content:flex-start}
+  .asset-list-chart{grid-column:1/-1}
+}
+@media(max-width:560px){
+  .asset-list-row{padding:12px}
+  .asset-list-chart{height:48px}
+}
+
+/* V4.5 — suggestions d'actifs */
+.asset-add{align-items:flex-start}
+.asset-search-wrap{position:relative;flex:1;min-width:220px}
+.asset-search-wrap>input{width:100%}
+.asset-suggestions{
+  position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:30;
+  background:#151a20;border:1px solid var(--line);border-radius:14px;
+  padding:6px;box-shadow:0 18px 45px rgba(0,0,0,.45);
+  max-height:320px;overflow:auto;
+}
+.asset-suggestion{
+  width:100%;display:flex;align-items:center;gap:12px;text-align:left;
+  background:transparent;border:0;border-radius:10px;padding:10px 11px;
+}
+.asset-suggestion:hover{background:#20262d}
+.asset-suggestion b{width:58px;font-size:13px}
+.asset-suggestion span{font-size:12px;color:var(--muted)}
+.suggestion-empty{padding:11px;color:var(--muted);font-size:12px}
+.asset-add-hint{margin:7px 2px 0}
+@media(max-width:650px){
+  .asset-add{display:grid;grid-template-columns:1fr 1fr}
+  .asset-search-wrap{grid-column:1/-1}
+  .asset-add .primary{width:100%}
+}

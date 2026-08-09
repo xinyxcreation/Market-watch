@@ -253,3 +253,12 @@ CoinGecko documente son API publique sans clé pour le prototypage et l'endpoint
 - Événements réels : résultats à venir des actifs surveillés et introductions en bourse (IPO).
 - Suppression des textes d'événements de démonstration.
 - Les blocs affichent explicitement « aucune information importante » / « aucun événement majeur proche » quand les sources ne renvoient rien.
+
+
+## V4.5
+- Accueil : retour à une séparation claire `₿ Crypto` / `📈 Bourse`.
+- `Mes actifs` reste une liste compacte, mais les deux catégories sont visuellement séparées.
+- Gestion des actifs : liste de suggestions visible dès le focus et filtrée pendant la saisie.
+- Suggestions crypto et actions courantes.
+- Clic sur une suggestion pour la sélectionner, Entrée ou `Ajouter` pour l'ajouter.
+- Ajout de plusieurs crypto courantes avec leurs identifiants CoinGecko.

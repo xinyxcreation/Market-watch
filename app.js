@@ -20,7 +20,11 @@ let data = {
 const FINNHUB_API_KEY = window.MARKET_WATCH_FINNHUB_KEY || "";
 const FINNHUB_BASE = "https://finnhub.io/api/v1";
 const COINGECKO_BASE = "https://api.coingecko.com/api/v3";
-const COIN_IDS = {BTC:"bitcoin",ETH:"ethereum",SOL:"solana"};
+const COIN_IDS = {
+  BTC:"bitcoin", ETH:"ethereum", SOL:"solana", XRP:"ripple", ADA:"cardano",
+  DOGE:"dogecoin", BNB:"binancecoin", AVAX:"avalanche-2", DOT:"polkadot",
+  LINK:"chainlink"
+};
 const STOCK_HISTORY_KEY = "mw_stock_session_history";
 let realDataEnabled = false;
 let cryptoDataEnabled = false;
@@ -29,6 +33,39 @@ let realDataError = "";
 let detailChartRange = "7";
 let detailChartToken = 0;
 
+const ASSET_SUGGESTIONS = {
+  crypto:[
+    ["BTC","Bitcoin"],["ETH","Ethereum"],["SOL","Solana"],["XRP","XRP"],
+    ["ADA","Cardano"],["DOGE","Dogecoin"],["BNB","BNB"],["AVAX","Avalanche"],
+    ["DOT","Polkadot"],["LINK","Chainlink"]
+  ],
+  stock:[
+    ["NVDA","NVIDIA"],["TSLA","Tesla"],["AAPL","Apple"],["MSFT","Microsoft"],
+    ["AMZN","Amazon"],["GOOGL","Alphabet"],["META","Meta"],["AMD","AMD"],
+    ["NFLX","Netflix"],["ORCL","Oracle"]
+  ]
+};
+function renderAssetSuggestions(){
+  const box=document.querySelector("#assetSuggestions");
+  const input=document.querySelector("#assetInput");
+  const type=document.querySelector("#assetType");
+  if(!box||!input||!type)return;
+  const q=input.value.trim().toUpperCase();
+  const items=ASSET_SUGGESTIONS[type.value]
+    .filter(([sym,name])=>!watch.some(a=>a.symbol===sym&&a.type===type.value))
+    .filter(([sym,name])=>!q || sym.includes(q) || name.toUpperCase().includes(q))
+    .slice(0,8);
+  box.innerHTML=items.length ? items.map(([sym,name])=>
+    `<button type="button" class="asset-suggestion" data-suggest-symbol="${sym}">
+      <b>${esc(sym)}</b><span>${esc(name)}</span>
+    </button>`).join("") :
+    `<div class="suggestion-empty">Aucun actif correspondant</div>`;
+  box.hidden=false;
+}
+function hideAssetSuggestions(){
+  const box=document.querySelector("#assetSuggestions");
+  if(box)box.hidden=true;
+}
 function realSymbol(a){ return a.type === "stock" ? a.symbol : a.symbol; }
 function coinId(symbol){ return COIN_IDS[symbol]; }
 
@@ -416,17 +453,36 @@ function dashboardRow(a){
   </article>`;
 }
 function renderDashboard(){
-  const rows=watch.map(dashboardRow).join("");
-  document.querySelector("#assetList").innerHTML=rows || `<p class="empty-state">Aucun actif surveillé.</p>`;
+  const crypto=watch.filter(a=>a.type==="crypto");
+  const stocks=watch.filter(a=>a.type==="stock");
+  const group=(title,items,cls)=>items.length
+    ? `<div class="asset-group ${cls}">
+         <div class="asset-group-head"><h3>${title}</h3><span>${items.length} actif${items.length>1?"s":""}</span></div>
+         <div class="asset-list">${items.map(dashboardRow).join("")}</div>
+       </div>`
+    : "";
+
+  document.querySelector("#assetList").innerHTML =
+    (group("₿ Crypto",crypto,"crypto-group") +
+     group("📈 Bourse",stocks,"stock-group")) ||
+    `<p class="empty-state">Aucun actif surveillé.</p>`;
+
   document.querySelector("#alerts").innerHTML="";
   const avg=watch.length?Math.round(watch.reduce((n,a)=>n+score(a),0)/watch.length):0;
   document.querySelector("#marketPulse").textContent=avg+"/100";
-  const watchItems=[...marketNews.map(data=>({kind:"news",data})),...marketEvents.map(data=>({kind:"event",data}))].sort((a,b)=>{
+
+  const watchItems=[
+    ...marketNews.map(data=>({kind:"news",data})),
+    ...marketEvents.map(data=>({kind:"event",data}))
+  ].sort((a,b)=>{
     const ta=a.kind==="news"?a.data.datetime:new Date(`${a.data.date}T12:00:00`).getTime();
     const tb=b.kind==="news"?b.data.datetime:new Date(`${b.data.date}T12:00:00`).getTime();
-    return a.kind==="event" && b.kind==="news" ? ta-tb : b.kind==="event" && a.kind==="news" ? tb-ta : tb-ta;
+    return a.kind==="event" && b.kind==="news" ? ta-tb :
+           b.kind==="event" && a.kind==="news" ? tb-ta : tb-ta;
   }).slice(0,5);
-  document.querySelector("#watchNow").innerHTML=watchItems.map(watchItem).join("") || `<p class="empty-state">📰 Aucune information importante.</p>`;
+
+  document.querySelector("#watchNow").innerHTML=watchItems.map(watchItem).join("") ||
+    `<p class="empty-state">📰 Aucune information importante.</p>`;
   updateDataStatus();
 }
 
@@ -583,15 +639,51 @@ document.addEventListener("change",e=>{
   else if(active==="watchlist") renderWatchlist();
   else if(active==="dashboard") renderDashboard();
 });
-document.querySelector("#addAssetBtn").onclick=()=>{
-  const symbol=document.querySelector("#assetInput").value.trim().toUpperCase(),type=document.querySelector("#assetType").value;
+function addSelectedAsset(){
+  const input=document.querySelector("#assetInput");
+  const type=document.querySelector("#assetType").value;
+  const symbol=input.value.trim().toUpperCase();
   if(!symbol)return;
+
   if(!watch.some(a=>a.symbol===symbol&&a.type===type)){
-    const x=data[type][symbol]||{price:0}; const min=x.price?Math.round(x.price*.9*100)/100:0,max=x.price?Math.round(x.price*1.1*100)/100:0;
-    watch.push({symbol,type,min,max});save();renderWatchlist();renderDashboard();
+    const x=data[type][symbol]||{price:0};
+    const min=x.price?Math.round(x.price*.9*100)/100:0;
+    const max=x.price?Math.round(x.price*1.1*100)/100:0;
+    watch.push({symbol,type,min,max});
+    save();
+    renderWatchlist();
+    renderDashboard();
+    refreshRealData();
   }
+  input.value="";
+  hideAssetSuggestions();
+}
+
+document.querySelector("#addAssetBtn").onclick=addSelectedAsset;
+
+document.querySelector("#assetInput").addEventListener("focus",renderAssetSuggestions);
+document.querySelector("#assetInput").addEventListener("input",renderAssetSuggestions);
+document.querySelector("#assetType").addEventListener("change",()=>{
   document.querySelector("#assetInput").value="";
-};
+  renderAssetSuggestions();
+});
+
+document.addEventListener("click",e=>{
+  const btn=e.target.closest("[data-suggest-symbol]");
+  if(btn){
+    const input=document.querySelector("#assetInput");
+    input.value=btn.dataset.suggestSymbol;
+    hideAssetSuggestions();
+    input.focus();
+    return;
+  }
+  if(!e.target.closest(".asset-search-wrap")) hideAssetSuggestions();
+});
+document.querySelector("#assetInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){e.preventDefault();addSelectedAsset();}
+});
+
+
 document.querySelector("#refreshBtn").onclick=()=>refreshRealData();
 document.querySelector("#saveSettings").onclick=()=>{
   settings.cgKey=document.querySelector("#cgKey").value.trim();settings.fhKey=document.querySelector("#fhKey").value.trim();

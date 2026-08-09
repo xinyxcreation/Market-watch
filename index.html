@@ -32,7 +32,7 @@
       <div id="alerts" class="alert-stack"></div>
       <section>
         <div class="section-head"><h2>💼 Mes actifs</h2><button class="small-btn" data-open="watchlist">Gérer</button></div>
-        <div id="assetList" class="asset-list"></div>
+        <div id="assetList"></div>
       </section>
       <section>
         <div class="section-head"><h2>🔥 À surveiller</h2><button class="small-btn" data-open="events">Tout voir</button></div>
@@ -42,11 +42,15 @@
 
     <section id="watchlist" class="screen">
       <div class="page-title"><h1>Mes actifs</h1><p class="muted">Définis ta zone mini/maxi pour chaque valeur.</p></div>
-      <div class="add-row">
-        <input id="assetInput" placeholder="Ex. BTC, ETH, SOL, NVDA, TSLA">
+      <div class="add-row asset-add">
+        <div class="asset-search-wrap">
+          <input id="assetInput" autocomplete="off" placeholder="Rechercher un actif : BTC, ETH, NVDA…">
+          <div id="assetSuggestions" class="asset-suggestions" hidden></div>
+        </div>
         <select id="assetType"><option value="crypto">Crypto</option><option value="stock">Action</option></select>
         <button id="addAssetBtn" class="primary">Ajouter</button>
       </div>
+      <p class="hint asset-add-hint">Suggestions populaires — clique directement sur un actif pour le sélectionner.</p>
       <div id="watchlistRows"></div>
     </section>
 
