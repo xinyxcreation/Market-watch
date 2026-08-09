@@ -1,16 +1,3 @@
-const DEMO = {
-  crypto: {
-    BTC:{name:"Bitcoin",price:104520,change:2.4,history:[101,103,100,104,102,105,104,106,105,108,107,109,108,110]},
-    ETH:{name:"Ethereum",price:3420,change:1.1,history:[3.1,3.0,3.15,3.08,3.2,3.25,3.18,3.3,3.28,3.36,3.4,3.38,3.42]},
-    SOL:{name:"Solana",price:185,change:4.8,history:[160,164,158,170,166,175,171,180,177,183,179,188,185]}
-  },
-  stock: {
-    NVDA:{name:"NVIDIA",price:178.42,change:2.1,history:[165,168,164,170,172,169,175,173,178,176,181,179,177,178]},
-    TSLA:{name:"Tesla",price:342.15,change:-0.8,history:[350,346,351,344,348,355,349,345,347,341,344,340,343,342]},
-    MSFT:{name:"Microsoft",price:512.30,change:.4,history:[498,501,505,502,507,509,506,511,508,514,510,513,511,512]}
-  }
-};
-
 const defaultWatch = [
   {symbol:"BTC",type:"crypto",min:95000,max:110000},
   {symbol:"ETH",type:"crypto",min:3000,max:3800},
@@ -19,24 +6,15 @@ const defaultWatch = [
   {symbol:"TSLA",type:"stock",min:300,max:390}
 ];
 
-const DEMO_NEWS = [
-  {asset:"NVDA",impact:"FORT",direction:"buy",title:"L'IA reste un moteur majeur pour le secteur des semi-conducteurs",text:"Information favorable à surveiller.",sentiment:1},
-  {asset:"TSLA",impact:"MOYEN",direction:"neutral",title:"Automobile : annonces produits et production à surveiller",text:"Les annonces de nouveaux véhicules peuvent provoquer une volatilité importante.",sentiment:0},
-  {asset:"BTC",impact:"FORT",direction:"buy",title:"Crypto : le marché reste sensible aux annonces macroéconomiques",text:"Surveille les taux, la liquidité et les flux institutionnels.",sentiment:1},
-  {asset:"ETH",impact:"MOYEN",direction:"neutral",title:"Ethereum : activité réseau et écosystème à suivre",text:"Indicateurs de démonstration pour la V1.",sentiment:0}
-];
-
-const DEMO_EVENTS = [
-  {date:"12 août",asset:"NVDA",title:"Événement technologique / actualité produit",kind:"Technologie",impact:"FORT",direction:"buy"},
-  {date:"18 août",asset:"TSLA",title:"Annonce automobile à surveiller",kind:"Automobile",impact:"FORT",direction:"neutral"},
-  {date:"22 août",asset:"BTC",title:"Échéance / événement macro à surveiller",kind:"Crypto",impact:"MOYEN",direction:"neutral"},
-  {date:"28 août",asset:"TSLA",title:"Actualité potentielle autour d'un nouveau véhicule",kind:"Automobile",impact:"FORT",direction:"buy"},
-  {date:"3 sept.",asset:"ETH",title:"Événement écosystème crypto",kind:"Crypto",impact:"MOYEN",direction:"buy"}
-];
+let marketNews = [];
+let marketEvents = [];
 
 let watch = JSON.parse(localStorage.getItem("mw_watch") || "null") || defaultWatch;
 let settings = JSON.parse(localStorage.getItem("mw_settings") || "{}");
-let data = structuredClone(DEMO);
+let data = {
+  crypto:{BTC:{name:"Bitcoin",price:0,change:0,history:[]},ETH:{name:"Ethereum",price:0,change:0,history:[]},SOL:{name:"Solana",price:0,change:0,history:[]}},
+  stock:{NVDA:{name:"NVIDIA",price:0,change:0,history:[]},TSLA:{name:"Tesla",price:0,change:0,history:[]},MSFT:{name:"Microsoft",price:0,change:0,history:[]}}
+};
 
 
 const FINNHUB_API_KEY = window.MARKET_WATCH_FINNHUB_KEY || "";
@@ -114,8 +92,14 @@ async function refreshCrypto(){
     x.price=item.eur;
     x.change=typeof item.eur_24h_change==="number"?item.eur_24h_change:0;
     x.lastUpdated=item.last_updated_at?item.last_updated_at*1000:Date.now();
-    if(!Array.isArray(x.history))x.history=[];
-    x.history=[...x.history.slice(-119),x.price];
+    try{
+      const hist=await gecko(`/coins/${id}/market_chart`,{vs_currency:"eur",days:"7"});
+      x.chartHistory={"7":(hist.prices||[]).map(p=>({t:p[0],v:p[1]})).filter(p=>Number.isFinite(p.v))};
+      x.history=x.chartHistory["7"].map(p=>p.v);
+    }catch{
+      if(!Array.isArray(x.history))x.history=[];
+      x.history=[...x.history.slice(-119),x.price];
+    }
     ok++;
   }
   cryptoDataEnabled=ok>0;
@@ -125,10 +109,18 @@ async function refreshCrypto(){
 async function refreshStocks(){
   if(!FINNHUB_API_KEY)throw new Error("Clé Finnhub absente");
   let ok=0;
+  const now=Math.floor(Date.now()/1000), from=now-8*86400;
   await Promise.all(watch.filter(x=>x.type==="stock").map(async a=>{
     try{
       const q=await finnhub("/quote",{symbol:realSymbol(a)});
       if(applyStockQuote(a,q))ok++;
+      try{
+        const c=await finnhub("/stock/candle",{symbol:a.symbol,resolution:"D",from,to:now});
+        if(c?.s==="ok" && Array.isArray(c.c) && Array.isArray(c.t)){
+          data.stock[a.symbol].chartHistory={"7":c.c.map((v,i)=>({t:c.t[i]*1000,v})).filter(p=>Number.isFinite(p.v))};
+          data.stock[a.symbol].history=data.stock[a.symbol].chartHistory["7"].map(p=>p.v);
+        }
+      }catch{}
     }catch{}
   }));
   if(ok===0)throw new Error("Aucun cours action reçu");
@@ -136,15 +128,74 @@ async function refreshStocks(){
   return ok;
 }
 
+function isoDate(d){return d.toISOString().slice(0,10)}
+function newsImpact(n){
+  const text=((n.headline||"")+" "+(n.summary||"")).toLowerCase();
+  if(/earnings|results|guidance|approval|launch|deal|acquisition|partnership|upgrade|downgrade|lawsuit|recall|hack|etf|regulation|sec/.test(text)) return "FORT";
+  return "MOYEN";
+}
+function newsAsset(n){
+  const hay=((n.related||"")+" "+(n.headline||"")).toUpperCase();
+  const hit=watch.find(a=>a.type==="stock" && hay.includes(a.symbol));
+  if(hit)return hit.symbol;
+  for(const a of watch.filter(x=>x.type==="crypto")){
+    const names={BTC:["BTC","BITCOIN"],ETH:["ETH","ETHEREUM"],SOL:["SOL","SOLANA"]}[a.symbol]||[a.symbol];
+    if(names.some(k=>hay.includes(k)))return a.symbol;
+  }
+  return n.category==="crypto" ? "CRYPTO" : "MARCHÉ";
+}
+function newsToModel(n){
+  const asset=newsAsset(n);
+  const text=((n.headline||"")+" "+(n.summary||"")).toLowerCase();
+  const sentiment=/fall|drop|decline|bear|negative|lawsuit|recall|hack|downgrade|miss/.test(text)?-1:/rise|gain|bull|positive|approval|launch|upgrade|beat|record|growth/.test(text)?1:0;
+  return {asset,impact:newsImpact(n),direction:sentiment>0?"buy":sentiment<0?"sell":"neutral",sentiment,title:n.headline||"Actualité marché",text:n.summary||"",source:n.source||"",url:n.url||"",datetime:(n.datetime||0)*1000,category:n.category||"general"};
+}
+async function refreshNews(){
+  if(!FINNHUB_API_KEY){marketNews=[];return 0}
+  const today=new Date(), from=new Date(today.getTime()-7*86400000);
+  const requests=[
+    finnhub("/news",{category:"general"}),
+    finnhub("/news",{category:"crypto"}),
+    ...watch.filter(a=>a.type==="stock").map(a=>finnhub("/company-news",{symbol:a.symbol,from:isoDate(from),to:isoDate(today)}))
+  ];
+  const results=await Promise.allSettled(requests);
+  const rows=[];
+  for(const r of results){if(r.status==="fulfilled" && Array.isArray(r.value))rows.push(...r.value)}
+  const seen=new Set();
+  marketNews=rows.map(newsToModel).filter(n=>{
+    const key=n.url||n.title; if(seen.has(key))return false; seen.add(key);
+    return true;
+  }).sort((a,b)=>b.datetime-a.datetime).slice(0,30);
+  return marketNews.length;
+}
+async function refreshEvents(){
+  if(!FINNHUB_API_KEY){marketEvents=[];return 0}
+  const now=new Date(), end=new Date(now.getTime()+45*86400000);
+  const events=[];
+  const earnings=await Promise.allSettled(watch.filter(a=>a.type==="stock").map(a=>finnhub("/calendar/earnings",{from:isoDate(now),to:isoDate(end),symbol:a.symbol,international:"false"})));
+  for(const r of earnings){
+    if(r.status!=="fulfilled")continue;
+    for(const e of (r.value?.earningsCalendar||[])) events.push({date:e.date,asset:e.symbol,title:`Résultats ${e.symbol}`,kind:"Résultats",impact:"FORT",direction:"neutral",detail:`Publication ${e.hour||""}`.trim()});
+  }
+  try{
+    const ipo=await finnhub("/calendar/ipo",{from:isoDate(now),to:isoDate(end)});
+    for(const e of (ipo?.ipoCalendar||[]).slice(0,30)) events.push({date:e.date,asset:"IPO",title:`IPO : ${e.name||e.symbol||"Nouvelle cotation"}`,kind:e.exchange||"Introduction en bourse",impact:"FORT",direction:"neutral",detail:e.symbol?`Symbole ${e.symbol}`:""});
+  }catch{}
+  marketEvents=events.sort((a,b)=>String(a.date).localeCompare(String(b.date))).slice(0,30);
+  return marketEvents.length;
+}
+
 async function refreshRealData(){
-  const results=await Promise.allSettled([refreshCrypto(),refreshStocks()]);
+  const results=await Promise.allSettled([refreshCrypto(),refreshStocks(),refreshNews(),refreshEvents()]);
   cryptoDataEnabled=results[0].status==="fulfilled" && results[0].value>0;
   stockDataEnabled=results[1].status==="fulfilled" && results[1].value>0;
   realDataEnabled=cryptoDataEnabled || stockDataEnabled;
-  realDataError=[results[0],results[1]].filter(r=>r.status==="rejected").map(r=>r.reason?.message||"Erreur").join(" · ");
+  realDataError=[results[0],results[1],results[2],results[3]].filter(r=>r.status==="rejected").map(r=>r.reason?.message||"Erreur").join(" · ");
 
   renderDashboard();
   renderWatchlist();
+  renderNews();
+  renderEvents();
   applyScoreColors();
   const active=document.querySelector(".screen.active")?.id;
   if(active==="detail"){
@@ -163,6 +214,8 @@ function updateDataStatus(){
   const parts=[];
   parts.push(cryptoDataEnabled?"🟢 CRYPTO RÉEL · CoinGecko":"🔴 CRYPTO indisponible");
   parts.push(stockDataEnabled?"🟢 BOURSE RÉELLE · Finnhub":"🔴 BOURSE indisponible");
+  parts.push(marketNews.length?`📰 ${marketNews.length} actus`:"📰 0 actus");
+  parts.push(marketEvents.length?`📅 ${marketEvents.length} événements`:"📅 0 événement");
   u.textContent=parts.join("  ·  ")+" · "+new Date().toLocaleTimeString("fr-FR");
   u.classList.toggle("real-status",realDataEnabled);
   u.classList.toggle("demo-status",!realDataEnabled);
@@ -211,8 +264,8 @@ function analysis(a){
   const buyBase=Math.round(Math.max(0,(0.5-pos)/0.5)*100);
   const sellBase=Math.round(Math.max(0,(pos-0.5)/0.5)*100);
 
-  const news=DEMO_NEWS.filter(n=>n.asset===a.symbol);
-  const events=DEMO_EVENTS.filter(e=>e.asset===a.symbol);
+  const news=marketNews.filter(n=>n.asset===a.symbol);
+  const events=marketEvents.filter(e=>e.asset===a.symbol);
   const sentiment=news.reduce((v,n)=>v+(n.sentiment||0),0);
 
   // Contextual factors modulate the opportunity, but can never create
@@ -279,6 +332,7 @@ function formatChartDate(ts,range){
 function chartRangeLabel(r){return ({"1":"1J","7":"1S","30":"1M","180":"6M","365":"1A"})[r]||r;}
 function chartPointsFromHistory(a,range){
   if(a.type==="stock"){
+    if(a.chartHistory?.[range]?.length) return a.chartHistory[range];
     const hist=stockHistory(a.symbol);
     if(!hist.length)return [];
     const cutoff=Date.now()-Number(range)*86400000;
@@ -343,25 +397,45 @@ function card(a){
       <span title="Opportunité de vente"><b class="av-icon score-sell" data-score="${analysis(a).sell.score}" style="${scoreStyle(analysis(a).sell.score)}">Ⓥ</b><strong class="score-number score-sell" data-score="${analysis(a).sell.score}" style="${scoreStyle(analysis(a).sell.score)}">${analysis(a).sell.score}</strong></span>
     </div>
     </div>
-    <div class="mini-chart">${chartSvg(x.history)}</div>
+    <div class="mini-chart">${chartSvg(x.chartHistory?.["7"]?.map(p=>p.v)||x.history)}</div>
     <div class="range"><span>${money(a.min,a.type)}</span><span>${money(a.max,a.type)}</span></div>
     <div class="range-bar"><div class="range-fill" style="width:${pct}%"></div></div>
     
   </article>`;
 }
+function dashboardRow(a){
+  const x=assetInfo(a), z=zone(a), an=analysis(a);
+  const border=z.state==="below"?"threshold-below":z.state==="above"?"threshold-above":"";
+  const status=z.state==="below"?"🔴 Sous le mini":z.state==="above"?"🟢 Au-dessus du maxi":"Dans ta zone";
+  return `<article class="asset-list-row ${border}" data-detail="${a.type}:${a.symbol}">
+    <div class="asset-list-main"><div><b class="ticker">${esc(a.symbol)}</b><div class="name">${esc(x.name)} · ${a.type==="crypto"?"Crypto":"Action"}</div></div><span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span></div>
+    <div class="asset-list-price"><strong>${money(x.price,a.type)}</strong><span class="${x.change>=0?"positive":"negative"}">${x.change>=0?"+":""}${x.change.toFixed(2)} %</span></div>
+    <div class="asset-list-scores"><span class="av-score" title="Achat"><b class="av-icon" style="${scoreStyle(an.buy.score)}">Ⓐ</b> <strong style="${scoreStyle(an.buy.score)}">${an.buy.score}%</strong></span><span class="av-score" title="Vente"><b class="av-icon" style="${scoreStyle(an.sell.score)}">Ⓥ</b> <strong style="${scoreStyle(an.sell.score)}">${an.sell.score}%</strong></span></div>
+    <div class="asset-list-chart">${chartSvg(x.chartHistory?.["7"]?.map(p=>p.v)||x.history)}</div>
+    <div class="asset-list-range"><span>${money(a.min,a.type)}</span><span>${money(a.max,a.type)}</span></div>
+  </article>`;
+}
 function renderDashboard(){
-  const cs=watch.filter(a=>a.type==="crypto"), ss=watch.filter(a=>a.type==="stock");
-  document.querySelector("#cryptoCards").innerHTML=cs.length?cs.map(card).join(""):`<p class="muted">Aucune crypto surveillée.</p>`;
-  document.querySelector("#stockCards").innerHTML=ss.length?ss.map(card).join(""):`<p class="muted">Aucune action surveillée.</p>`;
+  const rows=watch.map(dashboardRow).join("");
+  document.querySelector("#assetList").innerHTML=rows || `<p class="empty-state">Aucun actif surveillé.</p>`;
   document.querySelector("#alerts").innerHTML="";
   const avg=watch.length?Math.round(watch.reduce((n,a)=>n+score(a),0)/watch.length):0;
   document.querySelector("#marketPulse").textContent=avg+"/100";
-  document.querySelector("#watchNow").innerHTML=[...DEMO_NEWS].sort((a,b)=>a.impact==="FORT"?-1:1).slice(0,3).map(newsItem).join("");
+  const watchItems=[...marketNews.map(data=>({kind:"news",data})),...marketEvents.map(data=>({kind:"event",data}))].sort((a,b)=>{
+    const ta=a.kind==="news"?a.data.datetime:new Date(`${a.data.date}T12:00:00`).getTime();
+    const tb=b.kind==="news"?b.data.datetime:new Date(`${b.data.date}T12:00:00`).getTime();
+    return a.kind==="event" && b.kind==="news" ? ta-tb : b.kind==="event" && a.kind==="news" ? tb-ta : tb-ta;
+  }).slice(0,5);
+  document.querySelector("#watchNow").innerHTML=watchItems.map(watchItem).join("") || `<p class="empty-state">📰 Aucune information importante.</p>`;
   updateDataStatus();
 }
-  applyScoreColors();
 
-function newsItem(n){return `<article class="news-item"><span class="impact">${n.impact}</span><div class="meta">${esc(n.asset)} · Actualité</div><h3>${esc(n.title)}</h3><p>${esc(n.text)}</p></article>`}
+function newsItem(n){return `<article class="news-item"><span class="impact">${n.impact}</span><div class="meta">${esc(n.asset)} · ${esc(n.source||"Actualité")}</div><h3>${esc(n.title)}</h3><p>${esc(n.text)}</p>${n.url?`<a class="news-link" href="${esc(n.url)}" target="_blank" rel="noopener">Lire la source ↗</a>`:""}</article>`}
+function watchItem(item){
+  if(item.kind==="news") return newsItem(item.data);
+  const e=item.data;
+  return `<article class="news-item watch-event"><span class="impact">${esc(e.impact)}</span><div class="meta">📅 ${esc(e.asset)} · ${esc(e.kind)}</div><h3>${esc(e.title)}</h3><p>${esc(e.detail||"Événement à venir")}</p></article>`;
+}
 function renderWatchlist(){
   document.querySelector("#watchlistRows").innerHTML=watch.map((a,i)=>{const x=assetInfo(a);return `<div class="watch-row">
     <div><b>${esc(a.symbol)}</b><div class="name">${a.type==="crypto"?"Crypto":"Action"}</div></div>
@@ -373,8 +447,17 @@ function renderWatchlist(){
 }
   applyScoreColors();
 
-function renderNews(){document.querySelector("#newsList").innerHTML=DEMO_NEWS.map(newsItem).join("")}
-function renderEvents(){document.querySelector("#eventList").innerHTML=DEMO_EVENTS.map(e=>`<article class="event"><div class="date-box"><b>${esc(e.date.split(" ")[0])}</b><span>${esc(e.date.split(" ").slice(1).join(" "))}</span></div><div class="event-body"><span class="impact">${esc(e.impact)}</span><div class="meta">${esc(e.asset)} · ${esc(e.kind)}</div><h3>${esc(e.title)}</h3><p>Événement de démonstration — les sources réelles seront branchées via API.</p></div></article>`).join("")}
+function renderNews(){
+  document.querySelector("#newsList").innerHTML=marketNews.map(newsItem).join("") || `<p class="empty-state">📰 Aucune information importante.</p>`;
+}
+function renderEvents(){
+  document.querySelector("#eventList").innerHTML=marketEvents.map(e=>{
+    const d=new Date(`${e.date}T12:00:00`);
+    const day=Number.isNaN(d.getTime())?String(e.date).slice(-2):d.toLocaleDateString("fr-FR",{day:"2-digit"});
+    const month=Number.isNaN(d.getTime())?String(e.date).slice(5,7):d.toLocaleDateString("fr-FR",{month:"short"});
+    return `<article class="event"><div class="date-box"><b>${esc(day)}</b><span>${esc(month)}</span></div><div class="event-body"><span class="impact">${esc(e.impact)}</span><div class="meta">${esc(e.asset)} · ${esc(e.kind)}</div><h3>${esc(e.title)}</h3><p>${esc(e.detail||"")}</p></div></article>`;
+  }).join("") || `<p class="empty-state">📅 Aucun événement majeur proche.</p>`;
+}
 function renderDetail(type,symbol){
   const a=watch.find(x=>x.type===type&&x.symbol===symbol)||{type,symbol,min:0,max:0};
   const x=assetInfo(a), an=analysis(a), z=zone(a), index=watch.indexOf(a);
@@ -383,7 +466,7 @@ function renderDetail(type,symbol){
   const root=document.querySelector("#detailContent");
   root.className=`detail-page ${border}`;
   const reasons=arr=>arr.map(r=>`<li>${esc(r)}</li>`).join("");
-  const newsHtml=an.news.length?an.news.map(n=>`<article class="news-item"><span class="impact">${esc(n.impact)}</span><div class="meta">${esc(n.asset)} · Actualité</div><h3>${esc(n.title)}</h3><p>${esc(n.text)}</p></article>`).join(""):`<p class="empty-state">📰 Aucune information importante.</p>`;
+  const newsHtml=an.news.length?an.news.map(n=>`<article class="news-item"><span class="impact">${esc(n.impact)}</span><div class="meta">${esc(n.asset)} · ${esc(n.source||"Actualité")}</div><h3>${esc(n.title)}</h3><p>${esc(n.text)}</p>${n.url?`<a class="news-link" href="${esc(n.url)}" target="_blank" rel="noopener">Lire la source ↗</a>`:""}</article>`).join(""):`<p class="empty-state">📰 Aucune information importante.</p>`;
   const eventsHtml=an.events.length?an.events.map(e=>`<article class="event compact"><div class="date-box"><b>${esc(e.date.split(" ")[0])}</b><span>${esc(e.date.split(" ").slice(1).join(" "))}</span></div><div class="event-body"><span class="impact">${esc(e.impact)}</span><div class="meta">${esc(e.kind)}</div><h3>${esc(e.title)}</h3></div></article>`).join(""):`<p class="empty-state">📅 Aucun événement majeur proche.</p>`;
   root.innerHTML=`
     <div class="detail-head"><div><div class="eyebrow">${type==="crypto"?"CRYPTO":"BOURSE"}</div><h1>${esc(symbol)} · ${esc(x.name)}</h1></div><span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span></div>
@@ -516,39 +599,6 @@ document.querySelector("#saveSettings").onclick=()=>{
 };
 document.querySelector("#cgKey").value=settings.cgKey||"";document.querySelector("#fhKey").value=settings.fhKey||"";
 
-let demoTick=0;
-function simulateMarket(){
-  demoTick++;
-  Object.values(data).forEach(group=>{
-    Object.values(group).forEach(x=>{
-      const last=x.price;
-      const amplitude=Math.max(last*0.035, 0.01);
-      const wave=Math.sin(demoTick*0.9 + x.name.length)*amplitude;
-      const jitter=Math.cos(demoTick*1.7 + x.name.length)*amplitude*0.35;
-      x.price=Math.max(0.01,last + wave + jitter);
-      x.change=((x.price-last)/last)*100;
-      x.history=[...x.history.slice(-13),x.price];
-    });
-  });
-
-  // Do not rebuild the dashboard while a threshold field is focused.
-  // This keeps the input editable while the demo prices continue moving.
-  const editing=document.activeElement?.matches("[data-threshold-index]");
-  const active=document.querySelector(".screen.active")?.id;
-
-  if(!editing){
-    if(active==="dashboard") renderDashboard();
-    else if(active==="watchlist") renderWatchlist();
-    else if(active==="detail"){
-      const title=document.querySelector("#detailContent h1")?.textContent||"";
-      const symbol=title.split(" · ")[0];
-      const a=watch.find(v=>v.symbol===symbol);
-      if(a) renderDetail(a.type,a.symbol);
-    }
-  }
-
-  document.querySelector("#updated").textContent="Démonstration V2.1 • valeurs simulées • "+new Date().toLocaleTimeString("fr-FR");
-}
 refreshRealData();
 setInterval(refreshRealData,60000);
 

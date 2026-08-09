@@ -242,3 +242,14 @@ Finnhub exige un token sur les appels GET et documente les symboles crypto de ty
 - Aucune valeur de démonstration n'est utilisée pour remplacer silencieusement une donnée réelle indisponible.
 
 CoinGecko documente son API publique sans clé pour le prototypage et l'endpoint `market_chart` fournit les séries historiques prix/temps. Finnhub fournit les cotations temps réel pour les actions US. 
+
+
+## V4.4
+- Accueil : **Mes actifs** présenté en liste compacte.
+- Graphiques d'accueil crypto : historique réel CoinGecko sur 7 jours.
+- Graphiques d'accueil actions : historique 7 jours Finnhub si l'endpoint est disponible, sinon historique local réel collecté.
+- Détail : graphique historique réel avec points cliquables (date/heure/prix).
+- Actualités réelles via Finnhub (générales, crypto et actualités société).
+- Événements réels : résultats à venir des actifs surveillés et introductions en bourse (IPO).
+- Suppression des textes d'événements de démonstration.
+- Les blocs affichent explicitement « aucune information importante » / « aucun événement majeur proche » quand les sources ne renvoient rien.

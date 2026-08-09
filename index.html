@@ -14,7 +14,7 @@
   <header class="topbar">
     <div>
       <div class="brand">MARKET <span>WATCH</span></div>
-      <div id="updated" class="muted">V4.3 • données réelles · CoinGecko + Finnhub</div>
+      <div id="updated" class="muted">V4.4 • données réelles · cours + historiques + actualités + événements</div>
     </div>
     <button id="refreshBtn" class="icon-btn" title="Actualiser">↻</button>
   </header>
@@ -31,12 +31,8 @@
       </div>
       <div id="alerts" class="alert-stack"></div>
       <section>
-        <div class="section-head"><h2>₿ Crypto</h2><button class="small-btn" data-open="watchlist">Gérer</button></div>
-        <div id="cryptoCards" class="cards"></div>
-      </section>
-      <section>
-        <div class="section-head"><h2>📈 Bourse</h2><button class="small-btn" data-open="watchlist">Gérer</button></div>
-        <div id="stockCards" class="cards"></div>
+        <div class="section-head"><h2>💼 Mes actifs</h2><button class="small-btn" data-open="watchlist">Gérer</button></div>
+        <div id="assetList" class="asset-list"></div>
       </section>
       <section>
         <div class="section-head"><h2>🔥 À surveiller</h2><button class="small-btn" data-open="events">Tout voir</button></div>
@@ -75,7 +71,7 @@
         <h3>Sources optionnelles</h3>
         <label>CoinGecko Demo API key <input id="cgKey" type="password" placeholder="Optionnel"></label>
         <label>Finnhub API key <input id="fhKey" type="password" placeholder="Optionnel"></label>
-        <p class="hint">Sans clés API, l'application utilise ses données de démonstration. Les clés restent stockées uniquement sur cet appareil.</p>
+        <p class="hint">La PWA utilise directement les sources réelles configurées. Les clés restent stockées uniquement sur cet appareil.</p>
         <button id="saveSettings" class="primary">Enregistrer</button>
       </div>
       <div class="settings-card">

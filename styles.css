@@ -257,3 +257,20 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
 .chart-help{font-size:11px;color:var(--muted);padding-top:6px}
 .chart-empty{height:100%;display:grid;place-items:center;color:var(--muted);text-align:center;padding:30px;font-size:13px}
 @media(max-width:650px){.chart-viewport{height:260px}.chart-toolbar{align-items:flex-start}.chart-readout{width:100%}.chart-ranges{width:100%;justify-content:space-between}.chart-range{flex:1}.chart-help{font-size:10px}}
+
+
+/* V4.4 — Mes actifs en liste + vrais graphiques 7 jours sur l'accueil */
+.asset-list{display:grid;gap:8px}
+.asset-list-row{display:grid;grid-template-columns:minmax(190px,1.25fr) minmax(130px,.8fr) 110px minmax(180px,1.2fr);align-items:center;gap:14px;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:11px 13px;cursor:pointer;transition:border-color .15s,transform .15s}
+.asset-list-row:hover{border-color:#3a444f;transform:translateY(-1px)}
+.asset-list-row.threshold-below{border:2px solid var(--red);box-shadow:0 0 0 1px rgba(255,91,104,.08)}
+.asset-list-row.threshold-above{border:2px solid var(--green);box-shadow:0 0 0 1px rgba(56,211,159,.08)}
+.asset-list-main{display:flex;justify-content:space-between;align-items:center;gap:10px;min-width:0}
+.asset-list-price{display:flex;align-items:baseline;gap:8px;white-space:nowrap}.asset-list-price strong{font-size:18px}.asset-list-price span{font-size:12px}
+.asset-list-scores{display:flex;gap:12px;justify-content:flex-end}.av-score{font-size:13px;font-weight:900;white-space:nowrap}.av-score .av-icon{font-size:13px}
+.asset-list-chart{height:54px;min-width:0}.asset-list-chart svg{width:100%;height:100%;display:block}.asset-list-chart polyline{stroke:var(--text);stroke-width:2.4}
+.asset-list-range{grid-column:4;display:flex;justify-content:space-between;color:var(--muted);font-size:10px;margin-top:-9px}
+.asset-list-row .asset-list-chart + .asset-list-range{margin-left:0}
+.news-link{display:inline-block;margin-top:8px;color:var(--accent2);font-size:11px;font-weight:800;text-decoration:none}.news-link:hover{text-decoration:underline}
+@media(max-width:850px){.asset-list-row{grid-template-columns:1.2fr .8fr 100px}.asset-list-chart{grid-column:1/-1;height:48px}.asset-list-range{grid-column:1/-1;margin-top:-8px}}
+@media(max-width:600px){.asset-list-row{grid-template-columns:1fr auto;gap:7px 10px;padding:11px}.asset-list-main{grid-column:1/-1}.asset-list-price{grid-column:1}.asset-list-scores{grid-column:2;grid-row:2}.asset-list-chart{grid-column:1/-1;height:50px}.asset-list-range{grid-column:1/-1}.asset-list-price strong{font-size:17px}}
