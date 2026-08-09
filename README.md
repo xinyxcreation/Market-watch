@@ -271,3 +271,10 @@ CoinGecko documente son API publique sans clé pour le prototypage et l'endpoint
 - Aucun fallback vers les anciens points de démonstration pour le graphique d'accueil.
 - Courbe d'accueil purement visuelle/non modifiable.
 - Affichage de la plage réelle min/max observée sur les 7 jours sous chaque courbe.
+
+
+## V4.7
+- Accueil : retour aux cards compactes en grille, au lieu des longues lignes horizontales.
+- 3 cards par ligne sur grand écran, 2 sur tablette, 1 sur mobile.
+- Chaque card conserve le liseré rouge/vert des seuils.
+- Courbe d'accueil = historique réel 7 jours, uniquement visuel.

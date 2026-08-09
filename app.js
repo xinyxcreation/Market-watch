@@ -469,15 +469,25 @@ function card(a){
 function dashboardRow(a){
   const x=assetInfo(a), z=zone(a), an=analysis(a);
   const border=z.state==="below"?"threshold-below":z.state==="above"?"threshold-above":"";
-  const status=z.state==="below"?"🔴 Sous le mini":z.state==="above"?"🟢 Au-dessus du maxi":"Dans ta zone";
-  return `<article class="asset-list-row ${border}" data-detail="${a.type}:${a.symbol}">
-    <div class="asset-list-main"><div><b class="ticker">${esc(a.symbol)}</b><div class="name">${esc(x.name)} · ${a.type==="crypto"?"Crypto":"Action"}</div></div><span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span></div>
-    <div class="asset-list-price"><strong>${money(x.price,a.type)}</strong><span class="${x.change>=0?"positive":"negative"}">${x.change>=0?"+":""}${x.change.toFixed(2)} %</span></div>
-    <div class="asset-list-scores"><span class="av-score" title="Achat"><b class="av-icon" style="${scoreStyle(an.buy.score)}">Ⓐ</b> <strong style="${scoreStyle(an.buy.score)}">${an.buy.score}%</strong></span><span class="av-score" title="Vente"><b class="av-icon" style="${scoreStyle(an.sell.score)}">Ⓥ</b> <strong style="${scoreStyle(an.sell.score)}">${an.sell.score}%</strong></span></div>
-    <div class="asset-list-chart">${weeklyHomeChart(x)}</div>
-    <div class="asset-list-range"><span>${money(a.min,a.type)}</span><span>${money(a.max,a.type)}</span></div>
+  const status=z.state==="below"?"Sous le mini":z.state==="above"?"Au-dessus du maxi":"Dans ta zone";
+  return `<article class="asset-card ${border}" data-detail="${a.type}:${a.symbol}">
+    <div class="asset-top">
+      <div><b class="ticker">${esc(a.symbol)}</b><div class="name">${esc(x.name)}</div></div>
+      <span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span>
+    </div>
+    <div class="asset-price">
+      <div><strong class="price">${money(x.price,a.type)}</strong><div class="${x.change>=0?"positive":"negative"}">${x.change>=0?"+":""}${x.change.toFixed(2)} %</div></div>
+      <div class="asset-card-scores">
+        <span class="av-score" title="Achat"><b class="av-icon" style="${scoreStyle(an.buy.score)}">Ⓐ</b> <strong style="${scoreStyle(an.buy.score)}">${an.buy.score}%</strong></span>
+        <span class="av-score" title="Vente"><b class="av-icon" style="${scoreStyle(an.sell.score)}">Ⓥ</b> <strong style="${scoreStyle(an.sell.score)}">${an.sell.score}%</strong></span>
+      </div>
+    </div>
+    <div class="mini-chart">${weeklyHomeChart(x)}</div>
+    <div class="range"><span>${money(a.min,a.type)}</span><span>${money(a.max,a.type)}</span></div>
+    <div class="range-bar"><div class="range-fill" style="width:${Math.max(0,Math.min(100,z.position))}%"></div></div>
   </article>`;
 }
+
 function renderDashboard(){
   const crypto=watch.filter(a=>a.type==="crypto");
   const stocks=watch.filter(a=>a.type==="stock");

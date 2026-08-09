@@ -390,3 +390,40 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
   .asset-list-range{grid-column:1/-1}
   .weekly-home-axis{font-size:8px}
 }
+
+/* V4.7 — accueil : retour aux cards compactes, comme la mise en forme d'origine */
+.asset-group{margin:0 0 26px}
+.asset-group-head{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px}
+.asset-group-head h3{margin:0;font-size:17px;font-weight:900}
+.asset-group-head span{font-size:11px;color:var(--muted)}
+.asset-list{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+}
+.asset-card{
+  position:relative;
+  min-width:0;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:14px 15px;
+  cursor:pointer;
+  transition:transform .15s,border-color .15s,box-shadow .15s;
+}
+.asset-card:hover{transform:translateY(-2px);border-color:#3a444f}
+.asset-card.threshold-below{border:2px solid var(--red);box-shadow:0 0 18px rgba(255,91,104,.08)}
+.asset-card.threshold-above{border:2px solid var(--green);box-shadow:0 0 18px rgba(56,211,159,.08)}
+.asset-top,.asset-price,.range{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.asset-price{margin-top:5px}
+.asset-price .price{margin:8px 0 1px}
+.asset-card-scores{display:flex;gap:9px;white-space:nowrap}
+.asset-card .mini-chart{height:58px;margin:8px -3px 4px}
+.asset-card .mini-chart svg{width:100%;height:100%;display:block}
+.asset-card .weekly-home-chart{height:100%;display:flex;flex-direction:column;justify-content:center;gap:1px}
+.asset-card .weekly-home-chart svg{height:48px}
+.asset-card .weekly-home-axis{display:none}
+.asset-card .range{font-size:10px;color:var(--muted)}
+.asset-card .range-bar{height:5px}
+@media(max-width:900px){.asset-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:580px){.asset-list{grid-template-columns:1fr}.asset-card{min-height:190px}}
