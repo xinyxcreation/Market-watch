@@ -214,17 +214,24 @@ function simulateMarket(){
       x.history=[...x.history.slice(-13),x.price];
     });
   });
+
+  // Do not rebuild the dashboard while a threshold field is focused.
+  // This keeps the input editable while the demo prices continue moving.
   const editing=document.activeElement?.matches("[data-threshold-index]");
-  if(!editing) renderDashboard();
   const active=document.querySelector(".screen.active")?.id;
-  if(active==="watchlist") renderWatchlist();
-  if(active==="detail"){
-    const title=document.querySelector("#detailContent h1")?.textContent||"";
-    const symbol=title.split(" · ")[0];
-    const a=watch.find(v=>v.symbol===symbol);
-    if(a) renderDetail(a.type,a.symbol);
+
+  if(!editing){
+    if(active==="dashboard") renderDashboard();
+    else if(active==="watchlist") renderWatchlist();
+    else if(active==="detail"){
+      const title=document.querySelector("#detailContent h1")?.textContent||"";
+      const symbol=title.split(" · ")[0];
+      const a=watch.find(v=>v.symbol===symbol);
+      if(a) renderDetail(a.type,a.symbol);
+    }
   }
-  document.querySelector("#updated").textContent="Démonstration • valeurs simulées • "+new Date().toLocaleTimeString("fr-FR");
+
+  document.querySelector("#updated").textContent="Démonstration V1.9 • valeurs simulées • "+new Date().toLocaleTimeString("fr-FR");
 }
 setInterval(simulateMarket,5000);
 

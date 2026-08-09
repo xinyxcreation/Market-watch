@@ -59,3 +59,8 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
 .detail-button{width:100%;margin-top:10px}
 .threshold-detail{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0}
 @media(max-width:650px){.threshold-detail{grid-template-columns:1fr}}
+
+/* V1.9: threshold editors are always real, clickable inputs. */
+.threshold-edit{position:relative;z-index:10}
+.threshold-edit input,.threshold-detail input{pointer-events:auto!important;cursor:text!important;user-select:text!important;-webkit-user-select:text!important}
+.threshold-edit input:focus,.threshold-detail input:focus{outline:2px solid var(--accent)!important;border-color:var(--accent)!important}

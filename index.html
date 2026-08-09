@@ -1,97 +1,98 @@
 <!doctype html>
 <html lang="fr">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#090b0e">
-<link rel="manifest" href="manifest.webmanifest">
-<title>Market Watch — TEST SEUILS V1.8</title>
-<style>
-:root{--bg:#090b0e;--panel:#11151a;--panel2:#171c22;--text:#f4f6f8;--muted:#8d98a6;--line:#252c34;--orange:#ff5a1f;--green:#38d39f;--red:#ff5968}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,sans-serif}header{padding:18px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#090b0eee;z-index:5}.brand{font-weight:900;letter-spacing:.08em}.brand b{color:var(--orange)}.test{font-size:11px;color:#ffb3a0;margin-top:4px}main{max-width:1000px;margin:auto;padding:18px 14px 50px}.intro{padding:18px;background:var(--panel);border:1px solid var(--line);border-radius:18px;margin-bottom:18px}.intro h1{margin:0 0 5px}.muted{color:var(--muted);font-size:12px}.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:14px}.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}.card.red{border:3px solid var(--red)}.card.green{border:3px solid var(--green)}.top{display:flex;justify-content:space-between}.ticker{font-weight:900;font-size:19px}.name{font-size:11px;color:var(--muted)}.price{font-size:28px;font-weight:900;margin:14px 0 2px}.up{color:var(--green)}.down{color:var(--red)}.status{font-size:11px;font-weight:800}.edit{margin-top:14px;padding:12px;background:var(--panel2);border-radius:12px}.edit-title{font-size:11px;font-weight:800;margin-bottom:8px}.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}.fields label{font-size:11px;color:var(--muted)}.fields input{display:block;width:100%;margin-top:5px;background:#0b0e12!important;color:#fff!important;border:2px solid #46515e!important;border-radius:9px;padding:12px!important;font-size:16px!important;outline:none!important;pointer-events:auto!important;user-select:text!important}.fields input:focus{border-color:var(--orange)!important;box-shadow:0 0 0 2px #ff5a1f44}.bar{height:5px;background:#2a3037;border-radius:5px;margin-top:8px}.fill{height:100%;background:var(--orange);border-radius:5px}.note{margin-top:14px;padding:10px;border-radius:10px;background:#0c1014;font-size:11px;color:var(--muted)}@media(max-width:600px){.cards{grid-template-columns:1fr}}
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b0d10">
+  <meta name="description" content="Market Watch — suivi personnel crypto et bourse">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <title>Market Watch</title>
 </head>
 <body>
-<header>
-  <div class="brand">MARKET <b>WATCH</b></div>
-  <div class="test">TEST SEUILS V1.8 — cette version utilise un index.html autonome</div>
-</header>
-<main>
-<div class="intro">
-<h1>₿ Mes actifs</h1>
-<div class="muted">Clique directement dans les champs Mini et Maxi. Les valeurs changent toutes les 5 secondes pour tester les cadres.</div>
-</div>
-<div id="cards" class="cards"></div>
-</main>
-<script>
-"use strict";
-const assets=[
- {s:"BTC",n:"Bitcoin",p:104520,min:95000,max:110000,c:2.4},
- {s:"ETH",n:"Ethereum",p:3420,min:3000,max:3800,c:1.1},
- {s:"SOL",n:"Solana",p:185,min:150,max:210,c:4.8},
- {s:"NVDA",n:"NVIDIA",p:178.42,min:155,max:190,c:2.1},
- {s:"TSLA",n:"Tesla",p:342.15,min:300,max:390,c:-.8}
-];
-
-function eur(v){return new Intl.NumberFormat("fr-FR",{style:"currency",currency:"EUR",maximumFractionDigits:v<100?2:0}).format(v)}
-function render(){
- const root=document.getElementById("cards");
- root.innerHTML=assets.map((a,i)=>{
-   const state=a.p<a.min?"red":a.p>a.max?"green":"";
-   const label=a.p<a.min?"🔴 Sous le mini":a.p>a.max?"🟢 Au-dessus du maxi":"Dans ta zone";
-   const pct=Math.max(0,Math.min(100,(a.p-a.min)/(a.max-a.min)*100));
-   return `<article class="card ${state}">
-    <div class="top"><div><div class="ticker">${a.s}</div><div class="name">${a.n}</div></div><div class="status">${label}</div></div>
-    <div class="price">${eur(a.p)}</div>
-    <div class="${a.c>=0?"up":"down"}">${a.c>=0?"+":""}${a.c.toFixed(2)} %</div>
-    <div class="edit">
-      <div class="edit-title">SEUILS PERSONNALISÉS</div>
-      <div class="fields">
-        <label>MINI
-          <input id="min-${i}" type="number" step="any" value="${a.min}" oninput="setThreshold(${i},'min',this.value)" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
-        </label>
-        <label>MAXI
-          <input id="max-${i}" type="number" step="any" value="${a.max}" oninput="setThreshold(${i},'max',this.value)" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
-        </label>
-      </div>
-      <div class="bar"><div class="fill" style="width:${pct}%"></div></div>
+  <header class="topbar">
+    <div>
+      <div class="brand">MARKET <span>WATCH</span></div>
+      <div id="updated" class="muted">Démonstration V1.9 • données locales</div>
     </div>
-    <div class="note">Prix simulé : changement automatique toutes les 5 secondes.</div>
-   </article>`;
- }).join("");
-}
-window.setThreshold=function(i,f,v){
- const n=Number(v);
- if(!Number.isFinite(n))return;
- assets[i][f]=n;
- // Update only the visual frame/status, never replace the input DOM while typing.
- const input=document.getElementById(f+"-"+i);
- const card=input.closest(".card");
- card.classList.remove("red","green");
- const a=assets[i];
- const status=card.querySelector(".status");
- if(a.p<a.min){card.classList.add("red");status.textContent="🔴 Sous le mini"}
- else if(a.p>a.max){card.classList.add("green");status.textContent="🟢 Au-dessus du maxi"}
- else status.textContent="Dans ta zone";
- const fill=card.querySelector(".fill");
- fill.style.width=Math.max(0,Math.min(100,(a.p-a.min)/(a.max-a.min)*100))+"%";
-};
-function simulate(){
- assets.forEach((a,i)=>{
-   const last=a.p;
-   const delta=Math.max(last*.045,.01);
-   a.p=Math.max(.01,last+Math.sin(Date.now()/1000+i*1.7)*delta*.45+Math.cos(Date.now()/1300+i)*delta*.25);
-   a.c=(a.p-last)/last*100;
-   const price=document.querySelectorAll(".price")[i];
-   if(price)price.textContent=eur(a.p);
-   const trend=document.querySelectorAll(".price~div")[i];
-   if(trend){trend.textContent=(a.c>=0?"+":"")+a.c.toFixed(2)+" %";trend.className=a.c>=0?"up":"down"}
-   const min=document.getElementById("min-"+i), max=document.getElementById("max-"+i);
-   if(min&&max) setThreshold(i,"min",min.value);
- });
-}
-render();
-setInterval(simulate,5000);
-</script>
+    <button id="refreshBtn" class="icon-btn" title="Actualiser">↻</button>
+  </header>
+
+  <main>
+    <section id="dashboard" class="screen active">
+      <div class="hero-card">
+        <div>
+          <p class="eyebrow">MON MARCHÉ</p>
+          <h1>À surveiller</h1>
+          <p class="muted">Cours, seuils, actualités, événements et analyse réunis au même endroit.</p>
+        </div>
+        <div id="marketPulse" class="pulse">—</div>
+      </div>
+      <div id="alerts" class="alert-stack"></div>
+      <section>
+        <div class="section-head"><h2>₿ Crypto</h2><button class="small-btn" data-open="watchlist">Gérer</button></div>
+        <div id="cryptoCards" class="cards"></div>
+      </section>
+      <section>
+        <div class="section-head"><h2>📈 Bourse</h2><button class="small-btn" data-open="watchlist">Gérer</button></div>
+        <div id="stockCards" class="cards"></div>
+      </section>
+      <section>
+        <div class="section-head"><h2>🔥 À surveiller</h2><button class="small-btn" data-open="events">Tout voir</button></div>
+        <div id="watchNow" class="news-list"></div>
+      </section>
+    </section>
+
+    <section id="watchlist" class="screen">
+      <div class="page-title"><h1>Mes actifs</h1><p class="muted">Définis ta zone mini/maxi pour chaque valeur.</p></div>
+      <div class="add-row">
+        <input id="assetInput" placeholder="Ex. BTC, ETH, SOL, NVDA, TSLA">
+        <select id="assetType"><option value="crypto">Crypto</option><option value="stock">Action</option></select>
+        <button id="addAssetBtn" class="primary">Ajouter</button>
+      </div>
+      <div id="watchlistRows"></div>
+    </section>
+
+    <section id="detail" class="screen">
+      <button class="back-btn" data-open="dashboard">← Retour</button>
+      <div id="detailContent"></div>
+    </section>
+
+    <section id="news" class="screen">
+      <div class="page-title"><h1>📰 Actualités</h1><p class="muted">Informations liées à tes actifs.</p></div>
+      <div id="newsList" class="news-list"></div>
+    </section>
+
+    <section id="events" class="screen">
+      <div class="page-title"><h1>📅 Événements</h1><p class="muted">Résultats, IPO, produits, jeux, voitures et annonces importantes.</p></div>
+      <div id="eventList" class="timeline"></div>
+    </section>
+
+    <section id="settings" class="screen">
+      <div class="page-title"><h1>⚙️ Réglages</h1><p class="muted">La V1 fonctionne sans compte ni serveur.</p></div>
+      <div class="settings-card">
+        <h3>Sources optionnelles</h3>
+        <label>CoinGecko Demo API key <input id="cgKey" type="password" placeholder="Optionnel"></label>
+        <label>Finnhub API key <input id="fhKey" type="password" placeholder="Optionnel"></label>
+        <p class="hint">Sans clés API, l'application utilise ses données de démonstration. Les clés restent stockées uniquement sur cet appareil.</p>
+        <button id="saveSettings" class="primary">Enregistrer</button>
+      </div>
+      <div class="settings-card">
+        <h3>À propos</h3>
+        <p>Market Watch V1 — PWA locale. Les scores et indications sont des aides à la lecture du marché, pas des conseils financiers.</p>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-nav">
+    <button data-open="dashboard" class="nav active"><span>⌂</span>Accueil</button>
+    <button data-open="watchlist" class="nav"><span>◉</span>Actifs</button>
+    <button data-open="news" class="nav"><span>▤</span>Actus</button>
+    <button data-open="events" class="nav"><span>◷</span>Agenda</button>
+    <button data-open="settings" class="nav"><span>⚙</span>Réglages</button>
+  </nav>
+
+  <script src="app.js"></script>
 </body>
 </html>
