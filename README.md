@@ -145,3 +145,13 @@ Les scores et indications sont des aides à la lecture du marché et ne constitu
 - Les couleurs sont réappliquées après chaque actualisation/rendu.
 - Les scores suivent maintenant réellement le dégradé rouge → blanc → vert à chaque mise à jour.
 - Correction du cas où le CSS imposait à nouveau le blanc après le calcul JavaScript.
+
+
+## V3.5
+- Ⓐ et Ⓥ prennent maintenant exactement la couleur de leur score.
+- La couleur est appliquée directement après chaque rendu pour résister aux actualisations.
+- Nouvelle logique de score : 50 % de la zone Mini/Maxi = point de référence.
+- À 50 %, Achat = 0 et Vente = 0.
+- Sous 50 %, seul le score Achat augmente progressivement jusqu'à 100 au Mini.
+- Au-dessus de 50 %, seul le score Vente augmente progressivement jusqu'à 100 au Maxi.
+- Les actualités et événements modulent légèrement le score sans pouvoir créer une opportunité à 50 %.

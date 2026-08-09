@@ -215,3 +215,11 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
   font-weight:950!important;
   transition:color .2s ease;
 }
+
+/* V3.5 — A/V and score use the same deterministic gradient. */
+.quick-opportunities .av-icon,
+.quick-opportunities .score-number,
+.opp-score.score-number{
+  transition:color .15s ease;
+}
+.quick-opportunities .av-icon{font-size:13px;font-weight:950}

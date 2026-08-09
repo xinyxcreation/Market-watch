@@ -71,70 +71,63 @@ function level(score){
 function score(a){ return analysis(a).buy.score; }
 function analysis(a){
   const x=assetInfo(a), p=x.price, range=Math.max(a.max-a.min,0.000001);
-  const pos=Math.max(0,Math.min(1,(p-a.min)/range)); // 0 = mini, 1 = maxi
+  const pos=Math.max(0,Math.min(1,(p-a.min)/range));
+  const midpoint=(a.min+a.max)/2;
 
-  // Core rule:
-  // BUY becomes stronger as price approaches/breaks the minimum.
-  // SELL becomes stronger as price approaches/breaks the maximum.
-  const buyPrice = Math.round((1-pos)*55);
-  const sellPrice = Math.round(pos*55);
-
-  const trend=Math.max(-1,Math.min(1,x.change/5));
-  // Positive trend helps buy; negative trend helps sell.
-  const buyTrend=Math.round(10 + trend*10);
-  const sellTrend=Math.round(10 - trend*10);
+  // 50% = reference price / user's position.
+  // At exactly 50%, BUY and SELL are both 0.
+  // Below 50%, only BUY gets a price score.
+  // Above 50%, only SELL gets a price score.
+  const buyBase=Math.round(Math.max(0,(0.5-pos)/0.5)*100);
+  const sellBase=Math.round(Math.max(0,(pos-0.5)/0.5)*100);
 
   const news=DEMO_NEWS.filter(n=>n.asset===a.symbol);
   const events=DEMO_EVENTS.filter(e=>e.asset===a.symbol);
   const sentiment=news.reduce((v,n)=>v+(n.sentiment||0),0);
 
-  // News/events are secondary signals, never stronger than the personalized price zone.
-  const buyNews=Math.max(0,Math.min(12,6+sentiment*3));
-  const sellNews=Math.max(0,Math.min(12,6-sentiment*3));
+  // Contextual factors modulate the opportunity, but can never create
+  // an opportunity on their own. Therefore 50% remains exactly 0/100.
+  const buyContext=Math.max(0.75,Math.min(1.15,1+(sentiment*0.06)+(events.some(e=>e.direction==="buy")?0.06:0)));
+  const sellContext=Math.max(0.75,Math.min(1.15,1-(sentiment*0.06)+(events.some(e=>e.direction==="sell")?0.06:0)));
 
-  const buyEvent=events.length
-    ? Math.max(0,Math.min(8,4+events.reduce((v,e)=>v+(e.direction==="buy"?2:e.direction==="sell"?-2:0),0)))
-    : 0;
-  const sellEvent=events.length
-    ? Math.max(0,Math.min(8,4+events.reduce((v,e)=>v+(e.direction==="sell"?2:e.direction==="buy"?-2:0),0)))
-    : 0;
-
-  const volatility=Math.min(5,Math.round(Math.abs(x.change)));
-
-  const buy=Math.max(0,Math.min(100,Math.round(buyPrice+buyTrend+buyNews+buyEvent+volatility)));
-  const sell=Math.max(0,Math.min(100,Math.round(sellPrice+sellTrend+sellNews+sellEvent+volatility)));
+  const buy=Math.round(Math.min(100,buyBase*buyContext));
+  const sell=Math.round(Math.min(100,sellBase*sellContext));
 
   const buyZone =
     p<=a.min ? "sous ton minimum" :
     pos<.25 ? "très proche de ton minimum" :
-    pos<.5 ? "dans la partie basse de ta zone" :
-    "encore trop haut par rapport à ta zone d'achat";
+    pos<.5 ? "sous ton point de référence (50 %)" :
+    "au-dessus de ton point de référence : pas d'achat";
 
   const sellZone =
     p>=a.max ? "au-dessus de ton maximum" :
     pos>.75 ? "très proche de ton maximum" :
-    pos>.5 ? "dans la partie haute de ta zone" :
-    "encore trop bas par rapport à ta zone de vente";
+    pos>.5 ? "au-dessus de ton point de référence (50 %)" :
+    "sous ton point de référence : pas de vente";
+
+  const trendText=x.change>1?"positive":x.change< -1?"négative":"stable";
 
   return {
+    reference:midpoint,
+    position:pos*100,
     buy:{
       score:buy,level:level(buy),
       reasons:[
         `📍 Prix : ${buyZone}`,
-        `📈 Tendance : ${x.change>1?"positive":x.change< -1?"négative":"stable"} (${x.change>=0?"+":""}${x.change.toFixed(2)} %)`,
+        `🎯 Point de référence : ${money(midpoint,a.type)} (50 % de ta zone)`,
+        `📈 Tendance : ${trendText} (${x.change>=0?"+":""}${x.change.toFixed(2)} %)`,
         `📰 Actualités : ${news.length?(sentiment>0?"plutôt favorables":"à surveiller"):"aucune information importante"}`,
-        `📅 Événement : ${events.length?"un événement majeur est à surveiller":"aucun événement majeur proche"}`,
-        `⚡ Volatilité : ${Math.abs(x.change)>=3?"élevée":"modérée"}`
+        `📅 Événement : ${events.length?"un événement majeur est à surveiller":"aucun événement majeur proche"}`
       ]
     },
     sell:{
       score:sell,level:level(sell),
       reasons:[
         `📍 Prix : ${sellZone}`,
-        `📉 Tendance : ${x.change< -1?"baissière":x.change>1?"haussière":"stable"} (${x.change>=0?"+":""}${x.change.toFixed(2)} %)`,
+        `🎯 Point de référence : ${money(midpoint,a.type)} (50 % de ta zone)`,
+        `📉 Tendance : ${trendText} (${x.change>=0?"+":""}${x.change.toFixed(2)} %)`,
         `📰 Actualités : ${news.length?(sentiment<0?"plutôt défavorables":"peu favorables à une vente"):"aucune information importante"}`,
-        `📅 Événement : ${events.length?"un événement majeur est à surveiller":"aucun événement majeur proche"}`,
-        `⚡ Volatilité : ${Math.abs(x.change)>=3?"élevée":"modérée"}`
+        `📅 Événement : ${events.length?"un événement majeur est à surveiller":"aucun événement majeur proche"}`
       ]
     },
     news,events
@@ -159,8 +152,8 @@ function card(a){
     <div class="asset-price">
       <div><div class="price">${money(x.price,a.type)}</div><span class="${x.change>=0?"positive":"negative"}">${x.change>=0?"+":""}${x.change.toFixed(2)} %</span></div>
       <div class="quick-opportunities" aria-label="Scores achat et vente">
-      <span title="Opportunité d'achat"><b class="av-icon">Ⓐ</b><strong class="score-number" data-score="${analysis(a).buy.score}">${analysis(a).buy.score}</strong></span>
-      <span title="Opportunité de vente"><b class="av-icon">Ⓥ</b><strong class="score-number" data-score="${analysis(a).sell.score}">${analysis(a).sell.score}</strong></span>
+      <span title="Opportunité d'achat"><b class="av-icon" data-score="${analysis(a).buy.score}">Ⓐ</b><strong class="score-number" data-score="${analysis(a).buy.score}">${analysis(a).buy.score}</strong></span>
+      <span title="Opportunité de vente"><b class="av-icon" data-score="${analysis(a).sell.score}">Ⓥ</b><strong class="score-number" data-score="${analysis(a).sell.score}">${analysis(a).sell.score}</strong></span>
     </div>
     </div>
     <div class="mini-chart">${chartSvg(x.history)}</div>
@@ -212,9 +205,9 @@ function renderDetail(type,symbol){
     <div class="metrics">
       <div class="metric"><span class="muted">Mini</span><input class="metric-input" type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="min" value="${a.min}"></div>
       <div class="metric"><span class="muted">Maxi</span><input class="metric-input" type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="max" value="${a.max}"></div>
-      <div class="metric"><span class="muted">Position</span><b>${Math.round(Math.max(0,Math.min(100,(x.price-a.min)/(a.max-a.min||1)*100)))}%</b></div>
+      <div class="metric"><span class="muted">Référence 50 %</span><b>${money(an.reference,a.type)}</b></div>
     </div>
-    <section class="analysis-section"><div class="section-head"><h2>🧠 Analyse automatique</h2><p class="analysis-explain">Le score d’achat augmente quand le cours se rapproche de ton <b>mini</b>. Le score de vente augmente quand il se rapproche de ton <b>maxi</b>.</p></div>
+    <section class="analysis-section"><div class="section-head"><h2>🧠 Analyse automatique</h2><p class="analysis-explain">🎯 <b>50 % = ton point de référence.</b> À ce niveau, achat et vente sont à 0. Sous 50 %, l'opportunité d'achat augmente ; au-dessus de 50 %, l'opportunité de vente augmente.</p></div>
       <div class="opportunity-grid">
         <article class="opportunity buy"><div class="opp-title">ACHAT</div><div class="opp-score score-number" data-score="${an.buy.score}">${an.buy.score}/100</div><div class="opp-level">${an.buy.level.icon} ${an.buy.level.label}</div><ul>${reasons(an.buy.reasons)}</ul></article>
         <article class="opportunity sell"><div class="opp-title">VENTE</div><div class="opp-score score-number" data-score="${an.sell.score}">${an.sell.score}/100</div><div class="opp-level">${an.sell.level.icon} ${an.sell.level.label}</div><ul>${reasons(an.sell.reasons)}</ul></article>
@@ -226,22 +219,28 @@ function renderDetail(type,symbol){
 }
 
 
+function scoreColor(score){
+  const v=Math.max(0,Math.min(100,Number(score)||0));
+  let r,g,b;
+  if(v<=50){
+    const t=v/50;
+    r=255;
+    g=Math.round(65+190*t);
+    b=Math.round(75+180*t);
+  }else{
+    const t=(v-50)/50;
+    r=Math.round(255-175*t);
+    g=255;
+    b=Math.round(255-145*t);
+  }
+  return `rgb(${r},${g},${b})`;
+}
 function applyScoreColors(){
   document.querySelectorAll(".score-number[data-score]").forEach(el=>{
-    const v=Math.max(0,Math.min(100,Number(el.dataset.score)||0));
-    let r,g,b;
-    if(v<=50){
-      const t=v/50;
-      r=255;
-      g=Math.round(78+177*t);
-      b=Math.round(88+167*t);
-    }else{
-      const t=(v-50)/50;
-      r=Math.round(255-175*t);
-      g=Math.round(255-8*t);
-      b=Math.round(255-145*t);
-    }
-    el.style.setProperty("color",`rgb(${r},${g},${b})`);
+    el.style.setProperty("color",scoreColor(el.dataset.score),"important");
+  });
+  document.querySelectorAll(".av-icon[data-score]").forEach(el=>{
+    el.style.setProperty("color",scoreColor(el.dataset.score),"important");
   });
 }
   applyScoreColors();
