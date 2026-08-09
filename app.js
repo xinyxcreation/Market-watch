@@ -41,17 +41,18 @@ let data = structuredClone(DEMO);
 
 const FINNHUB_API_KEY = window.MARKET_WATCH_FINNHUB_KEY || "";
 const FINNHUB_BASE = "https://finnhub.io/api/v1";
+const COINGECKO_BASE = "https://api.coingecko.com/api/v3";
+const COIN_IDS = {BTC:"bitcoin",ETH:"ethereum",SOL:"solana"};
+const STOCK_HISTORY_KEY = "mw_stock_session_history";
 let realDataEnabled = false;
+let cryptoDataEnabled = false;
+let stockDataEnabled = false;
 let realDataError = "";
+let detailChartRange = "7";
+let detailChartToken = 0;
 
-function realSymbol(a){
-  if(a.type==="crypto"){
-    return a.symbol==="BTC"?"BINANCE:BTCUSDT":
-           a.symbol==="ETH"?"BINANCE:ETHUSDT":
-           a.symbol==="SOL"?"BINANCE:SOLUSDT":a.symbol;
-  }
-  return a.symbol;
-}
+function realSymbol(a){ return a.type === "stock" ? a.symbol : a.symbol; }
+function coinId(symbol){ return COIN_IDS[symbol]; }
 
 async function finnhub(path, params={}){
   const u=new URL(FINNHUB_BASE+path);
@@ -59,61 +60,112 @@ async function finnhub(path, params={}){
   u.searchParams.set("token",FINNHUB_API_KEY);
   const r=await fetch(u.toString(),{cache:"no-store"});
   if(!r.ok) throw new Error(`Finnhub HTTP ${r.status}`);
-  const data=await r.json();
-  if(data?.error) throw new Error(data.error);
-  return data;
+  const json=await r.json();
+  if(json?.error) throw new Error(json.error);
+  return json;
 }
 
-function applyRealQuote(a,q){
+async function gecko(path, params={}){
+  const u=new URL(COINGECKO_BASE+path);
+  Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));
+  const r=await fetch(u.toString(),{cache:"no-store"});
+  if(!r.ok) throw new Error(`CoinGecko HTTP ${r.status}`);
+  return r.json();
+}
+
+function loadStockHistory(){
+  try{return JSON.parse(localStorage.getItem(STOCK_HISTORY_KEY)||"{}")||{};}catch{return {};}
+}
+function saveStockHistory(h){localStorage.setItem(STOCK_HISTORY_KEY,JSON.stringify(h));}
+function pushStockPoint(symbol,price,ts=Date.now()){
+  if(!Number.isFinite(price)||price<=0)return;
+  const h=loadStockHistory();
+  const arr=Array.isArray(h[symbol])?h[symbol]:[];
+  const last=arr[arr.length-1];
+  if(last && Math.abs(ts-last.t)<20000){arr[arr.length-1]={t:ts,v:price};}
+  else arr.push({t:ts,v:price});
+  h[symbol]=arr.slice(-720);
+  saveStockHistory(h);
+}
+function stockHistory(symbol){
+  const h=loadStockHistory();
+  return Array.isArray(h[symbol])?h[symbol]:[];
+}
+
+function applyStockQuote(a,q){
   if(!q || typeof q.c!=="number" || !q.c) return false;
-  a.price=q.c;
-  a.change=typeof q.dp==="number" ? q.dp : 0;
-  if(!Array.isArray(a.history)) a.history=[];
-  a.history=[...a.history.slice(-13),a.price];
+  const x=data.stock[a.symbol] ||= {name:a.symbol,price:q.c,change:0,history:[]};
+  x.price=q.c;
+  x.change=typeof q.dp==="number" ? q.dp : (typeof q.d==="number" && q.pc ? q.d/q.pc*100 : 0);
+  pushStockPoint(a.symbol,q.c,typeof q.t==="number"?q.t*1000:Date.now());
+  const hist=stockHistory(a.symbol);
+  x.history=hist.length?hist.map(p=>p.v):[q.c];
   return true;
 }
 
-async function refreshRealData(){
-  if(!FINNHUB_API_KEY){
-    realDataEnabled=false;
-    realDataError="Clé Finnhub absente";
-    updateDataStatus();
-    return false;
+async function refreshCrypto(){
+  const ids=Object.values(COIN_IDS).join(",");
+  const q=await gecko("/simple/price",{ids,vs_currencies:"eur",include_24hr_change:"true",include_last_updated_at:"true"});
+  let ok=0;
+  for(const a of watch.filter(x=>x.type==="crypto")){
+    const id=coinId(a.symbol), item=q[id];
+    if(!item || typeof item.eur!=="number")continue;
+    const x=data.crypto[a.symbol] ||= {name:a.symbol,price:item.eur,change:0,history:[]};
+    x.price=item.eur;
+    x.change=typeof item.eur_24h_change==="number"?item.eur_24h_change:0;
+    x.lastUpdated=item.last_updated_at?item.last_updated_at*1000:Date.now();
+    if(!Array.isArray(x.history))x.history=[];
+    x.history=[...x.history.slice(-119),x.price];
+    ok++;
   }
-  try{
-    let ok=0;
-    for(const a of watch){
+  cryptoDataEnabled=ok>0;
+  return ok;
+}
+
+async function refreshStocks(){
+  if(!FINNHUB_API_KEY)throw new Error("Clé Finnhub absente");
+  let ok=0;
+  await Promise.all(watch.filter(x=>x.type==="stock").map(async a=>{
+    try{
       const q=await finnhub("/quote",{symbol:realSymbol(a)});
-      if(applyRealQuote(a,q)) ok++;
-    }
-    if(ok===0) throw new Error("Aucun cours réel reçu");
-    realDataEnabled=true;
-    realDataError="";
-    renderDashboard();
-    renderWatchlist();
-    applyScoreColors();
-    updateDataStatus();
-    return true;
-  }catch(e){
-    realDataEnabled=false;
-    realDataError=e.message;
-    updateDataStatus();
-    return false;
+      if(applyStockQuote(a,q))ok++;
+    }catch{}
+  }));
+  if(ok===0)throw new Error("Aucun cours action reçu");
+  stockDataEnabled=true;
+  return ok;
+}
+
+async function refreshRealData(){
+  const results=await Promise.allSettled([refreshCrypto(),refreshStocks()]);
+  cryptoDataEnabled=results[0].status==="fulfilled" && results[0].value>0;
+  stockDataEnabled=results[1].status==="fulfilled" && results[1].value>0;
+  realDataEnabled=cryptoDataEnabled || stockDataEnabled;
+  realDataError=[results[0],results[1]].filter(r=>r.status==="rejected").map(r=>r.reason?.message||"Erreur").join(" · ");
+
+  renderDashboard();
+  renderWatchlist();
+  applyScoreColors();
+  const active=document.querySelector(".screen.active")?.id;
+  if(active==="detail"){
+    const title=document.querySelector("#detailContent h1")?.textContent||"";
+    const symbol=title.split(" · ")[0];
+    const a=watch.find(v=>v.symbol===symbol);
+    if(a)renderDetail(a.type,a.symbol);
   }
+  updateDataStatus();
+  return realDataEnabled;
 }
 
 function updateDataStatus(){
   const u=document.querySelector("#updated");
-  if(!u) return;
-  if(realDataEnabled){
-    u.textContent="🟢 DONNÉES RÉELLES · FINNHUB · "+new Date().toLocaleTimeString("fr-FR");
-    u.classList.add("real-status");
-    u.classList.remove("demo-status");
-  }else{
-    u.textContent="🟠 DÉMO · FINNHUB INDISPONIBLE";
-    u.classList.add("demo-status");
-    u.classList.remove("real-status");
-  }
+  if(!u)return;
+  const parts=[];
+  parts.push(cryptoDataEnabled?"🟢 CRYPTO RÉEL · CoinGecko":"🔴 CRYPTO indisponible");
+  parts.push(stockDataEnabled?"🟢 BOURSE RÉELLE · Finnhub":"🔴 BOURSE indisponible");
+  u.textContent=parts.join("  ·  ")+" · "+new Date().toLocaleTimeString("fr-FR");
+  u.classList.toggle("real-status",realDataEnabled);
+  u.classList.toggle("demo-status",!realDataEnabled);
 }
 
 function save(){localStorage.setItem("mw_watch",JSON.stringify(watch))}
@@ -213,10 +265,67 @@ function analysis(a){
 }
 
 function chartSvg(history,large=false){
-  const w=large?900:240,h=large?190:58,p=10,min=Math.min(...history),max=Math.max(...history),range=max-min||1;
-  const pts=history.map((v,i)=>`${p+i*(w-2*p)/(history.length-1)},${h-p-(v-min)*(h-2*p)/range}`).join(" ");
-  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="${large?4:3}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const w=large?960:240,h=large?280:58,p=large?28:10;
+  const vals=history.length?history:[0,1];
+  const min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;
+  const pts=vals.map((v,i)=>`${p+i*(w-2*p)/Math.max(1,vals.length-1)},${h-p-(v-min)*(h-2*p)/range}`).join(" ");
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="${large?3:3}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
+function formatChartDate(ts,range){
+  const d=new Date(ts);
+  if(range==="1")return d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  return d.toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:range==="365"?"2-digit":undefined});
+}
+function chartRangeLabel(r){return ({"1":"1J","7":"1S","30":"1M","180":"6M","365":"1A"})[r]||r;}
+function chartPointsFromHistory(a,range){
+  if(a.type==="stock"){
+    const hist=stockHistory(a.symbol);
+    if(!hist.length)return [];
+    const cutoff=Date.now()-Number(range)*86400000;
+    return hist.filter(p=>p.t>=cutoff);
+  }
+  return a.chartHistory?.[range]||[];
+}
+function interactiveChart(a){
+  const points=chartPointsFromHistory(a,detailChartRange);
+  if(!points.length){
+    return `<div class="chart-shell"><div class="chart-empty">${a.type==="stock"?"📈 Le graphique réel commence à se construire avec les relevés Finnhub toutes les 60 secondes.":"📈 Chargement de l'historique réel…"}</div></div>`;
+  }
+  const w=960,h=300,p={l:62,r:18,t:18,b:34};
+  const vals=points.map(p=>p.v), min=Math.min(...vals),max=Math.max(...vals),range=max-min||Math.max(1,max*0.001);
+  const x=i=>p.l+i*(w-p.l-p.r)/Math.max(1,points.length-1);
+  const y=v=>h-p.b-(v-min)*(h-p.t-p.b)/range;
+  const line=points.map((pt,i)=>`${x(i).toFixed(1)},${y(pt.v).toFixed(1)}`).join(" ");
+  const circles=points.map((pt,i)=>`<circle class="chart-point" cx="${x(i).toFixed(1)}" cy="${y(pt.v).toFixed(1)}" r="${points.length>250?3:5}" data-index="${i}" data-ts="${pt.t}" data-price="${pt.v}" tabindex="0" aria-label="${esc(formatChartDate(pt.t,detailChartRange))} · ${esc(money(pt.v,a.type))}"/>`).join("");
+  const grid=[0,.25,.5,.75,1].map(t=>{
+    const yy=p.t+t*(h-p.t-p.b), val=max-(max-min)*t;
+    return `<line x1="${p.l}" x2="${w-p.r}" y1="${yy}" y2="${yy}" class="chart-grid"/><text x="${p.l-8}" y="${yy+4}" text-anchor="end" class="chart-axis">${esc(money(val,a.type))}</text>`;
+  }).join("");
+  const ticks=[0,.25,.5,.75,1].map(t=>{const i=Math.round(t*(points.length-1));return `<text x="${x(i)}" y="${h-8}" text-anchor="middle" class="chart-axis">${esc(formatChartDate(points[i].t,detailChartRange))}</text>`}).join("");
+  const last=points[points.length-1];
+  return `<div class="chart-shell" data-chart-symbol="${esc(a.symbol)}">
+    <div class="chart-toolbar"><div class="chart-readout" aria-live="polite"><b>${money(last.v,a.type)}</b><span>${formatChartDate(last.t,detailChartRange)}</span></div><div class="chart-ranges">${["1","7","30","180","365"].map(r=>`<button type="button" class="chart-range ${detailChartRange===r?"active":""}" data-chart-range="${r}">${chartRangeLabel(r)}</button>`).join("")}</div></div>
+    <div class="chart-viewport"><svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Graphique historique ${esc(a.symbol)}"><g>${grid}${ticks}</g><polyline points="${line}" class="chart-line"/><g>${circles}</g></svg><div class="chart-tooltip" hidden></div></div>
+    <div class="chart-help">Clique ou touche un point pour afficher précisément le prix et l'heure.</div>
+  </div>`;
+}
+async function loadDetailHistory(a){
+  const token=++detailChartToken;
+  if(a.type!=="crypto")return;
+  a.chartHistory ||= {};
+  if(a.chartHistory[detailChartRange])return;
+  try{
+    const q=await gecko(`/coins/${coinId(a.symbol)}/market_chart`,{vs_currency:"eur",days:detailChartRange});
+    if(token!==detailChartToken)return;
+    a.chartHistory[detailChartRange]=(q.prices||[]).map(p=>({t:p[0],v:p[1]})).filter(p=>Number.isFinite(p.v));
+    renderDetail(a.type,a.symbol,false);
+  }catch(e){
+    if(token!==detailChartToken)return;
+    a.chartHistory[detailChartRange]=[];
+    renderDetail(a.type,a.symbol,false);
+  }
+}
+
 function card(a){
   const index=watch.indexOf(a), x=assetInfo(a), z=zone(a), s=score(a);
   const pct=Math.max(0,Math.min(100,(x.price-a.min)/(a.max-a.min||1)*100));
@@ -248,7 +357,7 @@ function renderDashboard(){
   const avg=watch.length?Math.round(watch.reduce((n,a)=>n+score(a),0)/watch.length):0;
   document.querySelector("#marketPulse").textContent=avg+"/100";
   document.querySelector("#watchNow").innerHTML=[...DEMO_NEWS].sort((a,b)=>a.impact==="FORT"?-1:1).slice(0,3).map(newsItem).join("");
-  document.querySelector("#updated").textContent=settings.demoMode===false?"Dernière actualisation : "+new Date().toLocaleTimeString("fr-FR"):"Mode démonstration • "+new Date().toLocaleTimeString("fr-FR");
+  updateDataStatus();
 }
   applyScoreColors();
 
@@ -279,7 +388,7 @@ function renderDetail(type,symbol){
   root.innerHTML=`
     <div class="detail-head"><div><div class="eyebrow">${type==="crypto"?"CRYPTO":"BOURSE"}</div><h1>${esc(symbol)} · ${esc(x.name)}</h1></div><span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span></div>
     <div class="detail-price">${money(x.price,type)} <span class="${x.change>=0?"positive":"negative"}" style="font-size:18px">${x.change>=0?"+":""}${x.change.toFixed(2)} %</span></div>
-    <div class="big-chart">${chartSvg(x.history,true)}</div>
+    ${interactiveChart(a)}
     <div class="metrics">
       <div class="metric"><span class="muted">Mini</span><input class="metric-input" type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="min" value="${a.min}"></div>
       <div class="metric"><span class="muted">Maxi</span><input class="metric-input" type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="max" value="${a.max}"></div>
@@ -294,6 +403,7 @@ function renderDetail(type,symbol){
     <section class="analysis-section"><div class="section-head"><h2>📰 Actualités</h2></div>${newsHtml}</section>
     <section class="analysis-section"><div class="section-head"><h2>📅 Événements</h2></div>${eventsHtml}</section>
     <p class="analysis-note">Les scores sont des indicateurs d'analyse et ne constituent pas une recommandation financière.</p>`;
+  loadDetailHistory(a);
 }
 
 
@@ -343,6 +453,36 @@ document.addEventListener("click",e=>{
   if(rem){watch.splice(+rem.dataset.remove,1);save();renderWatchlist();renderDashboard()}
 });
 
+document.addEventListener("click",e=>{
+  const range=e.target.closest("[data-chart-range]");
+  if(range){
+    detailChartRange=range.dataset.chartRange;
+    const title=document.querySelector("#detailContent h1")?.textContent||"";
+    const symbol=title.split(" · ")[0];
+    const a=watch.find(v=>v.symbol===symbol);
+    if(a){renderDetail(a.type,a.symbol);}
+    return;
+  }
+  const point=e.target.closest(".chart-point");
+  if(point){showChartPoint(point);}
+});
+function showChartPoint(point){
+  const shell=point.closest(".chart-shell"),tip=shell?.querySelector(".chart-tooltip"),readout=shell?.querySelector(".chart-readout");
+  if(!tip||!readout)return;
+  const price=Number(point.dataset.price),ts=Number(point.dataset.ts);
+  const title=document.querySelector("#detailContent h1")?.textContent||"";
+  const symbol=title.split(" · ")[0],a=watch.find(v=>v.symbol===symbol);
+  const date=new Date(ts);
+  const dateText=date.toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+  readout.innerHTML=`<b>${money(price,a?.type||"crypto")}</b><span>${dateText}</span>`;
+  const svg=shell.querySelector("svg"),rect=svg.getBoundingClientRect(),cx=Number(point.getAttribute("cx")),cy=Number(point.getAttribute("cy"));
+  const vb=svg.viewBox.baseVal, px=(cx/vb.width)*rect.width, py=(cy/vb.height)*rect.height;
+  tip.innerHTML=`<strong>${money(price,a?.type||"crypto")}</strong><span>${esc(dateText)}</span>`;
+  tip.hidden=false;
+  tip.style.left=Math.max(8,Math.min(rect.width-150,px-65))+"px";
+  tip.style.top=Math.max(8,py-58)+"px";
+}
+
 document.addEventListener("change",e=>{
   if(!e.target.matches("[data-threshold-index]")) return;
   const i=+e.target.dataset.thresholdIndex;
@@ -369,7 +509,7 @@ document.querySelector("#addAssetBtn").onclick=()=>{
   }
   document.querySelector("#assetInput").value="";
 };
-document.querySelector("#refreshBtn").onclick=()=>{renderDashboard();document.querySelector("#updated").textContent="Actualisé à "+new Date().toLocaleTimeString("fr-FR")};
+document.querySelector("#refreshBtn").onclick=()=>refreshRealData();
 document.querySelector("#saveSettings").onclick=()=>{
   settings.cgKey=document.querySelector("#cgKey").value.trim();settings.fhKey=document.querySelector("#fhKey").value.trim();
   localStorage.setItem("mw_settings",JSON.stringify(settings));alert("Réglages enregistrés sur cet appareil.");

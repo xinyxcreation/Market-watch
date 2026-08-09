@@ -230,3 +230,15 @@ Finnhub exige un token sur les appels GET et documente les symboles crypto de ty
 - Suppression de toute référence à `API_BASE`.
 - `config.js` ajouté au cache du Service Worker.
 - La PWA statique utilise maintenant uniquement l'API Finnhub directe.
+
+## V4.3 — données réelles + graphiques interactifs
+
+- **Crypto : CoinGecko** en EUR pour BTC, ETH et SOL.
+- **Actions : Finnhub** pour les cours US NVDA, TSLA, etc.
+- Les cryptos utilisent l'historique réel CoinGecko avec plusieurs périodes : **1J, 1S, 1M, 6M, 1A**.
+- Les actions construisent un historique **réel depuis l'ouverture de la PWA**, alimenté par les cotations Finnhub toutes les 60 secondes.
+- Le graphique détail est interactif : toucher/cliquer un point affiche **le montant exact + la date + l'heure**.
+- Le bandeau distingue séparément l'état réel Crypto et Bourse.
+- Aucune valeur de démonstration n'est utilisée pour remplacer silencieusement une donnée réelle indisponible.
+
+CoinGecko documente son API publique sans clé pour le prototypage et l'endpoint `market_chart` fournit les séries historiques prix/temps. Finnhub fournit les cotations temps réel pour les actions US. 

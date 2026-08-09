@@ -235,3 +235,25 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
 
 .real-status{color:#36e0a0!important;font-weight:800}
 .demo-status{color:#ff9b4a!important;font-weight:800}
+
+/* V4.3 — graphiques réels interactifs */
+.chart-shell{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:12px;margin:15px 0}
+.chart-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.chart-readout{display:flex;align-items:baseline;gap:10px;min-height:34px}
+.chart-readout b{font-size:19px}
+.chart-readout span{font-size:11px;color:var(--muted)}
+.chart-ranges{display:flex;gap:5px}
+.chart-range{border:1px solid var(--line);background:var(--panel2);color:var(--muted);border-radius:9px;padding:6px 9px;font-size:11px;font-weight:800;cursor:pointer}
+.chart-range.active{color:var(--text);border-color:var(--accent);background:var(--accent-bg)}
+.chart-viewport{position:relative;height:300px;min-height:220px}
+.chart-viewport svg{width:100%;height:100%;display:block;overflow:visible}
+.chart-grid{stroke:var(--line);stroke-width:1;opacity:.55}
+.chart-axis{fill:var(--muted);font-size:11px}
+.chart-line{fill:none;stroke:var(--accent);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+.chart-point{fill:var(--accent);stroke:var(--panel);stroke-width:2;cursor:pointer;transition:r .12s ease}
+.chart-point:hover,.chart-point:focus{r:7;outline:none}
+.chart-tooltip{position:absolute;z-index:5;pointer-events:none;background:var(--panel2);border:1px solid var(--accent);border-radius:9px;padding:7px 9px;display:flex;flex-direction:column;gap:2px;box-shadow:0 8px 20px rgba(0,0,0,.25);white-space:nowrap}
+.chart-tooltip strong{font-size:13px}.chart-tooltip span{font-size:10px;color:var(--muted)}
+.chart-help{font-size:11px;color:var(--muted);padding-top:6px}
+.chart-empty{height:100%;display:grid;place-items:center;color:var(--muted);text-align:center;padding:30px;font-size:13px}
+@media(max-width:650px){.chart-viewport{height:260px}.chart-toolbar{align-items:flex-start}.chart-readout{width:100%}.chart-ranges{width:100%;justify-content:space-between}.chart-range{flex:1}.chart-help{font-size:10px}}
