@@ -262,3 +262,19 @@ CoinGecko documente son API publique sans clé pour le prototypage et l'endpoint
 - Suggestions crypto et actions courantes.
 - Clic sur une suggestion pour la sélectionner, Entrée ou `Ajouter` pour l'ajouter.
 - Ajout de plusieurs crypto courantes avec leurs identifiants CoinGecko.
+
+
+## V4.6
+- Retour du style de carte : fond, bordure, arrondi, espacements et hiérarchie visuelle proches des anciennes cards.
+- Accueil toujours en liste, avec séparation nette Crypto / Bourse.
+- Courbe d'accueil alimentée uniquement par l'historique réel des 7 derniers jours.
+- Aucun fallback vers les anciens points de démonstration pour le graphique d'accueil.
+- Courbe d'accueil purement visuelle/non modifiable.
+- Affichage de la plage réelle min/max observée sur les 7 jours sous chaque courbe.
+
+
+## V4.7
+- Accueil : retour aux cards compactes en grille, au lieu des longues lignes horizontales.
+- 3 cards par ligne sur grand écran, 2 sur tablette, 1 sur mobile.
+- Chaque card conserve le liseré rouge/vert des seuils.
+- Courbe d'accueil = historique réel 7 jours, uniquement visuel.
