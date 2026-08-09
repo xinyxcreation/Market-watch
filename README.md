@@ -296,3 +296,14 @@ CoinGecko documente son API publique sans clé pour le prototypage et l'endpoint
 - Les actualités et événements sont chargés après les cours et ne bloquent plus l'affichage principal.
 - Une indisponibilité temporaire de l'historique ne fait plus passer `CRYPTO` en indisponible si le prix réel est bien reçu.
 - Timeout séparé pour les requêtes prix/historique.
+
+
+## V5.0
+- Correction du ralentissement Firefox.
+- Un seul rafraîchissement des cours à la fois (`refreshRunning`).
+- Cours : 1 fois/minute.
+- Historique réel 7J : maximum 1 fois/15 minutes.
+- Actualités et événements : maximum 1 fois/10 minutes.
+- Aucun rafraîchissement réseau lorsque l'onglet est caché.
+- Au retour sur l'onglet, une actualisation est relancée proprement.
+- Les historiques ne bloquent plus le chargement des prix.

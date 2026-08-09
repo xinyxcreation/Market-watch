@@ -124,7 +124,7 @@ function applyStockQuote(a,q){
   return true;
 }
 
-async function refreshCrypto(){
+async function refreshCrypto({history=true}={}){
   const assets=watch.filter(x=>x.type==="crypto");
   if(!assets.length)return 0;
 
@@ -154,8 +154,10 @@ async function refreshCrypto(){
     updateDataStatus();
   }
 
-  // 2) Load the 7-day histories in parallel. A failure of one coin must not
-  // block the others or make the whole page look unavailable.
+  // 2) Load 7-day histories only when requested. This is intentionally
+  // separated from the frequent price refresh to avoid hammering the API
+  // and slowing the browser.
+  if(!history)return ok;
   await Promise.all(assets.map(async a=>{
     const id=coinId(a.symbol);
     if(!id)return;
@@ -278,30 +280,80 @@ async function refreshEvents(){
   return marketEvents.length;
 }
 
-async function refreshRealData(){
-  // Current prices and histories are deliberately independent from news/events.
-  // Each source updates the UI as soon as it has usable data.
-  const priceResults=await Promise.allSettled([refreshCrypto(),refreshStocks()]);
-  cryptoDataEnabled=priceResults[0].status==="fulfilled" && priceResults[0].value>0;
-  stockDataEnabled=priceResults[1].status==="fulfilled" && priceResults[1].value>0;
-  realDataEnabled=cryptoDataEnabled || stockDataEnabled;
-  realDataError=priceResults.filter(r=>r.status==="rejected")
-    .map(r=>r.reason?.message||"Erreur").join(" · ");
+let refreshRunning=false;
+let lastHistoryRefresh=0;
+let lastSecondaryRefresh=0;
+const PRICE_REFRESH_MS=60_000;
+const HISTORY_REFRESH_MS=15*60_000;
+const SECONDARY_REFRESH_MS=10*60_000;
 
+async function refreshPrices(){
+  if(refreshRunning)return;
+  refreshRunning=true;
+  try{
+    const results=await Promise.allSettled([
+      refreshCrypto({history:false}),
+      refreshStocks()
+    ]);
+    cryptoDataEnabled=results[0].status==="fulfilled" && results[0].value>0;
+    stockDataEnabled=results[1].status==="fulfilled" && results[1].value>0;
+    realDataEnabled=cryptoDataEnabled || stockDataEnabled;
+    realDataError=results.filter(r=>r.status==="rejected")
+      .map(r=>r.reason?.message||"Erreur").join(" · ");
+    renderDashboard();
+    renderWatchlist();
+    applyScoreColors();
+    updateDataStatus();
+  }finally{
+    refreshRunning=false;
+  }
+}
+
+async function refreshHistoryOnly(){
+  if(document.hidden || refreshRunning)return;
+  const now=Date.now();
+  if(now-lastHistoryRefresh<HISTORY_REFRESH_MS)return;
+  lastHistoryRefresh=now;
+  const assets=watch.filter(a=>a.type==="crypto");
+  if(!assets.length)return;
+
+  await Promise.all(assets.map(async a=>{
+    const id=coinId(a.symbol), x=data.crypto[a.symbol];
+    if(!id||!x)return;
+    try{
+      const hist=await gecko(`/coins/${id}/market_chart`,{vs_currency:"eur",days:"7"},12000);
+      const points=normalizeCryptoHistory(hist);
+      if(points.length>=2){
+        x.chartHistory ||= {};
+        x.chartHistory["7"]=points;
+        x.history=points.map(p=>p.v);
+        cacheCryptoHistory(a.symbol,"7",points);
+      }
+    }catch{}
+  }));
   renderDashboard();
   renderWatchlist();
-  applyScoreColors();
-  updateDataStatus();
+}
 
-  // News/events are secondary and never block the prices or charts.
-  const secondary=await Promise.allSettled([refreshNews(),refreshEvents()]);
-  marketNewsEnabled=secondary[0].status==="fulfilled";
-  eventsDataEnabled=secondary[1].status==="fulfilled";
+async function refreshSecondary(){
+  if(document.hidden)return;
+  const now=Date.now();
+  if(now-lastSecondaryRefresh<SECONDARY_REFRESH_MS)return;
+  lastSecondaryRefresh=now;
+  const results=await Promise.allSettled([refreshNews(),refreshEvents()]);
+  marketNewsEnabled=results[0].status==="fulfilled";
+  eventsDataEnabled=results[1].status==="fulfilled";
   renderDashboard();
   renderNews();
   renderEvents();
   applyScoreColors();
   updateDataStatus();
+}
+
+async function refreshRealData(){
+  await refreshPrices();
+  await refreshHistoryOnly();
+  await refreshSecondary();
 
   const active=document.querySelector(".screen.active")?.id;
   if(active==="detail"){
@@ -844,7 +896,22 @@ document.querySelector("#saveSettings").onclick=()=>{
 document.querySelector("#cgKey").value=settings.cgKey||"";document.querySelector("#fhKey").value=settings.fhKey||"";
 
 refreshRealData();
-setInterval(refreshRealData,60000);
+
+// Prices: every minute. History: at most every 15 min.
+// News/events: at most every 10 min. Nothing runs while the tab is hidden.
+setInterval(()=>{
+  if(!document.hidden) refreshPrices();
+},PRICE_REFRESH_MS);
+setInterval(()=>{
+  if(!document.hidden) refreshHistoryOnly();
+},60_000);
+setInterval(()=>{
+  if(!document.hidden) refreshSecondary();
+},60_000);
+
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden) refreshRealData();
+});
 
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 renderDashboard();
