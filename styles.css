@@ -223,3 +223,12 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
   transition:color .15s ease;
 }
 .quick-opportunities .av-icon{font-size:13px;font-weight:950}
+
+/* V3.6 — do not let generic typography rules override score colors. */
+.quick-opportunities .av-icon,
+.quick-opportunities .score-number,
+.opp-score.score-number{
+  color:inherit;
+  -webkit-text-fill-color:inherit;
+  font-weight:950!important;
+}

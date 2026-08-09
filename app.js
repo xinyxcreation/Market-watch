@@ -152,8 +152,8 @@ function card(a){
     <div class="asset-price">
       <div><div class="price">${money(x.price,a.type)}</div><span class="${x.change>=0?"positive":"negative"}">${x.change>=0?"+":""}${x.change.toFixed(2)} %</span></div>
       <div class="quick-opportunities" aria-label="Scores achat et vente">
-      <span title="Opportunité d'achat"><b class="av-icon" data-score="${analysis(a).buy.score}">Ⓐ</b><strong class="score-number" data-score="${analysis(a).buy.score}">${analysis(a).buy.score}</strong></span>
-      <span title="Opportunité de vente"><b class="av-icon" data-score="${analysis(a).sell.score}">Ⓥ</b><strong class="score-number" data-score="${analysis(a).sell.score}">${analysis(a).sell.score}</strong></span>
+      <span title="Opportunité d'achat"><b class="av-icon score-buy" data-score="${analysis(a).buy.score}" style="${scoreStyle(analysis(a).buy.score)}">Ⓐ</b><strong class="score-number score-buy" data-score="${analysis(a).buy.score}" style="${scoreStyle(analysis(a).buy.score)}">${analysis(a).buy.score}</strong></span>
+      <span title="Opportunité de vente"><b class="av-icon score-sell" data-score="${analysis(a).sell.score}" style="${scoreStyle(analysis(a).sell.score)}">Ⓥ</b><strong class="score-number score-sell" data-score="${analysis(a).sell.score}" style="${scoreStyle(analysis(a).sell.score)}">${analysis(a).sell.score}</strong></span>
     </div>
     </div>
     <div class="mini-chart">${chartSvg(x.history)}</div>
@@ -209,8 +209,8 @@ function renderDetail(type,symbol){
     </div>
     <section class="analysis-section"><div class="section-head"><h2>🧠 Analyse automatique</h2><p class="analysis-explain">🎯 <b>50 % = ton point de référence.</b> À ce niveau, achat et vente sont à 0. Sous 50 %, l'opportunité d'achat augmente ; au-dessus de 50 %, l'opportunité de vente augmente.</p></div>
       <div class="opportunity-grid">
-        <article class="opportunity buy"><div class="opp-title">ACHAT</div><div class="opp-score score-number" data-score="${an.buy.score}">${an.buy.score}/100</div><div class="opp-level">${an.buy.level.icon} ${an.buy.level.label}</div><ul>${reasons(an.buy.reasons)}</ul></article>
-        <article class="opportunity sell"><div class="opp-title">VENTE</div><div class="opp-score score-number" data-score="${an.sell.score}">${an.sell.score}/100</div><div class="opp-level">${an.sell.level.icon} ${an.sell.level.label}</div><ul>${reasons(an.sell.reasons)}</ul></article>
+        <article class="opportunity buy"><div class="opp-title">ACHAT</div><div class="opp-score score-number score-buy" data-score="${an.buy.score}" style="${scoreStyle(an.buy.score)}">${an.buy.score}/100</div><div class="opp-level">${an.buy.level.icon} ${an.buy.level.label}</div><ul>${reasons(an.buy.reasons)}</ul></article>
+        <article class="opportunity sell"><div class="opp-title">VENTE</div><div class="opp-score score-number score-sell" data-score="${an.sell.score}" style="${scoreStyle(an.sell.score)}">${an.sell.score}/100</div><div class="opp-level">${an.sell.level.icon} ${an.sell.level.label}</div><ul>${reasons(an.sell.reasons)}</ul></article>
       </div>
     </section>
     <section class="analysis-section"><div class="section-head"><h2>📰 Actualités</h2></div>${newsHtml}</section>
@@ -221,26 +221,21 @@ function renderDetail(type,symbol){
 
 function scoreColor(score){
   const v=Math.max(0,Math.min(100,Number(score)||0));
-  let r,g,b;
-  if(v<=50){
+  if(v <= 50){
     const t=v/50;
-    r=255;
-    g=Math.round(65+190*t);
-    b=Math.round(75+180*t);
-  }else{
-    const t=(v-50)/50;
-    r=Math.round(255-175*t);
-    g=255;
-    b=Math.round(255-145*t);
+    return `rgb(255, ${Math.round(70+185*t)}, ${Math.round(80+175*t)})`;
   }
-  return `rgb(${r},${g},${b})`;
+  const t=(v-50)/50;
+  return `rgb(${Math.round(255-175*t)}, 255, ${Math.round(255-145*t)})`;
 }
+function scoreStyle(score){
+  return `color:${scoreColor(score)} !important;-webkit-text-fill-color:${scoreColor(score)} !important`;
+}
+
 function applyScoreColors(){
-  document.querySelectorAll(".score-number[data-score]").forEach(el=>{
-    el.style.setProperty("color",scoreColor(el.dataset.score),"important");
-  });
-  document.querySelectorAll(".av-icon[data-score]").forEach(el=>{
-    el.style.setProperty("color",scoreColor(el.dataset.score),"important");
+  document.querySelectorAll(".score-number[data-score],.av-icon[data-score]").forEach(el=>{
+    const style=scoreStyle(el.dataset.score);
+    el.setAttribute("style",`${style};${el.getAttribute("style")||""}`);
   });
 }
   applyScoreColors();

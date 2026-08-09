@@ -155,3 +155,10 @@ Les scores et indications sont des aides à la lecture du marché et ne constitu
 - Sous 50 %, seul le score Achat augmente progressivement jusqu'à 100 au Mini.
 - Au-dessus de 50 %, seul le score Vente augmente progressivement jusqu'à 100 au Maxi.
 - Les actualités et événements modulent légèrement le score sans pouvoir créer une opportunité à 50 %.
+
+
+## V3.6
+- Correction définitive de l'affichage couleur des scores sur les cartes.
+- Le symbole Ⓐ/Ⓥ et son score reçoivent maintenant la couleur directement dans le HTML.
+- La couleur utilise aussi `-webkit-text-fill-color` pour éviter les règles de texte qui la masquent.
+- Les couleurs sont recréées à chaque rendu des cartes, donc ne dépendent plus d'un traitement après actualisation.
