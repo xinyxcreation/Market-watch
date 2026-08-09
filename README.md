@@ -5,7 +5,11 @@ PWA légère, autonome et locale pour surveiller crypto + actions.
 ## V1 incluse
 
 - Cours et variations
-- Seuil minimum / maximum personnalisés
+- Seuil minimum / maximum personnalisables directement sur les cartes
+- Cadre rouge si le cours est sous le mini
+- Cadre vert si le cours est au-dessus du maxi
+- Aucun cadre si le cours est entre les deux seuils
+- Mode démonstration : valeurs simulées toutes les 5 secondes
 - Graphiques
 - Watchlist crypto et actions
 - Alertes de dépassement de seuil

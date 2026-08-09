@@ -44,9 +44,19 @@ function esc(s){return String(s).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",
 function assetInfo(a){return data[a.type]?.[a.symbol] || {name:a.symbol,price:0,change:0,history:[0,1,0,1,0,1]}}
 function zone(a){
   const p=assetInfo(a).price;
-  if(p<a.min)return {label:"Sous ton mini",cls:"red"};
-  if(p>a.max)return {label:"Au-dessus du maxi",cls:"red"};
-  return {label:"Dans ta zone",cls:"green"};
+  if(p<a.min)return {label:"Sous ton mini",cls:"red",state:"below"};
+  if(p>a.max)return {label:"Au-dessus du maxi",cls:"green",state:"above"};
+  return {label:"Dans ta zone",cls:"none",state:"inside"};
+}
+function updateThreshold(i, field, value){
+  const n = Number(value);
+  if(!Number.isFinite(n)) return;
+  watch[i][field] = n;
+  if(field==="min" && watch[i].max < n) watch[i].max = n;
+  if(field==="max" && watch[i].min > n) watch[i].min = n;
+  save();
+  renderDashboard();
+  renderWatchlist();
 }
 function score(a){
   const x=assetInfo(a), z=zone(a);
@@ -62,11 +72,24 @@ function chartSvg(history,large=false){
   return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="${large?4:3}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
 function card(a){
-  const x=assetInfo(a), z=zone(a), s=score(a), pct=Math.max(0,Math.min(100,(x.price-a.min)/(a.max-a.min)*100));
-  return `<article class="asset-card" data-detail="${a.type}:${a.symbol}">
-    <div class="asset-top"><div><span class="ticker">${esc(a.symbol)}</span><div class="name">${esc(x.name)}</div></div><span class="badge ${z.cls}">${z.label}</span></div>
-    <div class="asset-price"><div><div class="price">${money(x.price,a.type)}</div><span class="${x.change>=0?"positive":"negative"}">${x.change>=0?"+":""}${x.change.toFixed(2)} %</span></div><div class="badge">⭐ ${s}/100</div></div>
+  const index=watch.indexOf(a), x=assetInfo(a), z=zone(a), s=score(a);
+  const pct=Math.max(0,Math.min(100,(x.price-a.min)/(a.max-a.min||1)*100));
+  const border=z.state==="below" ? "threshold-below" : z.state==="above" ? "threshold-above" : "";
+  const status=z.state==="below" ? "🔴 Sous le mini" : z.state==="above" ? "🟢 Au-dessus du maxi" : "Dans ta zone";
+  return `<article class="asset-card ${border}" data-detail="${a.type}:${a.symbol}">
+    <div class="asset-top">
+      <div><span class="ticker">${esc(a.symbol)}</span><div class="name">${esc(x.name)}</div></div>
+      <span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span>
+    </div>
+    <div class="asset-price">
+      <div><div class="price">${money(x.price,a.type)}</div><span class="${x.change>=0?"positive":"negative"}">${x.change>=0?"+":""}${x.change.toFixed(2)} %</span></div>
+      <div class="badge">⭐ ${s}/100</div>
+    </div>
     <div class="mini-chart">${chartSvg(x.history)}</div>
+    <div class="threshold-edit">
+      <label>Mini <input type="number" step="any" data-threshold-index="${index}" data-threshold-field="min" value="${a.min}"></label>
+      <label>Maxi <input type="number" step="any" data-threshold-index="${index}" data-threshold-field="max" value="${a.max}"></label>
+    </div>
     <div class="range"><span>${money(a.min,a.type)}</span><span>${money(a.max,a.type)}</span></div>
     <div class="range-bar"><div class="range-fill" style="width:${pct}%"></div></div>
   </article>`;
@@ -116,7 +139,14 @@ document.addEventListener("click",e=>{
   const rem=e.target.closest("[data-remove]"); if(rem){watch.splice(+rem.dataset.remove,1);save();renderWatchlist();renderDashboard()}
 });
 document.addEventListener("change",e=>{
-  if(e.target.matches("[data-field]")){const i=+e.target.dataset.i,f=e.target.dataset.field;watch[i][f]=Number(e.target.value);save();renderDashboard()}
+  if(e.target.matches("[data-field]")){
+    const i=+e.target.dataset.i,f=e.target.dataset.field;
+    updateThreshold(i,f,e.target.value);
+  }
+  if(e.target.matches("[data-threshold-index]")){
+    const i=+e.target.dataset.thresholdIndex,f=e.target.dataset.thresholdField;
+    updateThreshold(i,f,e.target.value);
+  }
 });
 document.querySelector("#addAssetBtn").onclick=()=>{
   const symbol=document.querySelector("#assetInput").value.trim().toUpperCase(),type=document.querySelector("#assetType").value;
@@ -133,5 +163,33 @@ document.querySelector("#saveSettings").onclick=()=>{
   localStorage.setItem("mw_settings",JSON.stringify(settings));alert("Réglages enregistrés sur cet appareil.");
 };
 document.querySelector("#cgKey").value=settings.cgKey||"";document.querySelector("#fhKey").value=settings.fhKey||"";
+
+let demoTick=0;
+function simulateMarket(){
+  demoTick++;
+  Object.values(data).forEach(group=>{
+    Object.values(group).forEach(x=>{
+      const last=x.price;
+      const amplitude=Math.max(last*0.035, 0.01);
+      const wave=Math.sin(demoTick*0.9 + x.name.length)*amplitude;
+      const jitter=Math.cos(demoTick*1.7 + x.name.length)*amplitude*0.35;
+      x.price=Math.max(0.01,last + wave + jitter);
+      x.change=((x.price-last)/last)*100;
+      x.history=[...x.history.slice(-13),x.price];
+    });
+  });
+  renderDashboard();
+  const active=document.querySelector(".screen.active")?.id;
+  if(active==="watchlist") renderWatchlist();
+  if(active==="detail"){
+    const title=document.querySelector("#detailContent h1")?.textContent||"";
+    const symbol=title.split(" · ")[0];
+    const a=watch.find(v=>v.symbol===symbol);
+    if(a) renderDetail(a.type,a.symbol);
+  }
+  document.querySelector("#updated").textContent="Démonstration • valeurs simulées • "+new Date().toLocaleTimeString("fr-FR");
+}
+setInterval(simulateMarket,5000);
+
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 renderDashboard();
