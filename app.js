@@ -57,6 +57,8 @@ function updateThreshold(i, field, value){
   save();
   renderDashboard();
   renderWatchlist();
+  const active=document.querySelector(".screen.active")?.id;
+  if(active==="detail") renderDetail(watch[i].type, watch[i].symbol);
 }
 function score(a){
   const x=assetInfo(a), z=zone(a);
@@ -135,7 +137,7 @@ function show(screen){
 }
 document.addEventListener("click",e=>{
   const open=e.target.closest("[data-open]"); if(open){show(open.dataset.open);return}
-  const detail=e.target.closest("[data-detail]"); if(detail){const [type,symbol]=detail.dataset.detail.split(":");renderDetail(type,symbol);show("detail")}
+  const detail=e.target.closest("[data-detail]"); if(detail){const [type,symbol]=detail.dataset.detail.split(":");show("detail");renderDetail(type,symbol)}
   const rem=e.target.closest("[data-remove]"); if(rem){watch.splice(+rem.dataset.remove,1);save();renderWatchlist();renderDashboard()}
 });
 document.addEventListener("change",e=>{

@@ -38,3 +38,9 @@ Les champs CoinGecko et Finnhub dans Réglages préparent le branchement de donn
 ## Important
 
 Les scores et indications sont des aides à la lecture du marché et ne constituent pas des conseils financiers.
+
+
+## V1.2
+- Mini/maxi modifiables aussi depuis la fiche détaillée d'un actif.
+- La fiche se met à jour immédiatement après modification.
+- Le cadre rouge/vert suit immédiatement le nouveau seuil.
