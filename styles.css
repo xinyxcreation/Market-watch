@@ -232,3 +232,6 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
   -webkit-text-fill-color:inherit;
   font-weight:950!important;
 }
+
+.real-status{color:#36e0a0!important;font-weight:800}
+.demo-status{color:#ff9b4a!important;font-weight:800}

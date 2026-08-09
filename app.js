@@ -39,9 +39,82 @@ let settings = JSON.parse(localStorage.getItem("mw_settings") || "{}");
 let data = structuredClone(DEMO);
 
 
-const API_BASE = window.MARKET_WATCH_API || "/api";
+const FINNHUB_API_KEY = window.MARKET_WATCH_FINNHUB_KEY || "";
+const FINNHUB_BASE = "https://finnhub.io/api/v1";
 let realDataEnabled = false;
 let realDataError = "";
+
+function realSymbol(a){
+  if(a.type==="crypto"){
+    return a.symbol==="BTC"?"BINANCE:BTCUSDT":
+           a.symbol==="ETH"?"BINANCE:ETHUSDT":
+           a.symbol==="SOL"?"BINANCE:SOLUSDT":a.symbol;
+  }
+  return a.symbol;
+}
+
+async function finnhub(path, params={}){
+  const u=new URL(FINNHUB_BASE+path);
+  Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));
+  u.searchParams.set("token",FINNHUB_API_KEY);
+  const r=await fetch(u.toString(),{cache:"no-store"});
+  if(!r.ok) throw new Error(`Finnhub HTTP ${r.status}`);
+  const data=await r.json();
+  if(data?.error) throw new Error(data.error);
+  return data;
+}
+
+function applyRealQuote(a,q){
+  if(!q || typeof q.c!=="number" || !q.c) return false;
+  a.price=q.c;
+  a.change=typeof q.dp==="number" ? q.dp : 0;
+  if(!Array.isArray(a.history)) a.history=[];
+  a.history=[...a.history.slice(-13),a.price];
+  return true;
+}
+
+async function refreshRealData(){
+  if(!FINNHUB_API_KEY){
+    realDataEnabled=false;
+    realDataError="Clé Finnhub absente";
+    updateDataStatus();
+    return false;
+  }
+  try{
+    let ok=0;
+    for(const a of watch){
+      const q=await finnhub("/quote",{symbol:realSymbol(a)});
+      if(applyRealQuote(a,q)) ok++;
+    }
+    if(ok===0) throw new Error("Aucun cours réel reçu");
+    realDataEnabled=true;
+    realDataError="";
+    renderDashboard();
+    renderWatchlist();
+    applyScoreColors();
+    updateDataStatus();
+    return true;
+  }catch(e){
+    realDataEnabled=false;
+    realDataError=e.message;
+    updateDataStatus();
+    return false;
+  }
+}
+
+function updateDataStatus(){
+  const u=document.querySelector("#updated");
+  if(!u) return;
+  if(realDataEnabled){
+    u.textContent="🟢 DONNÉES RÉELLES · FINNHUB · "+new Date().toLocaleTimeString("fr-FR");
+    u.classList.add("real-status");
+    u.classList.remove("demo-status");
+  }else{
+    u.textContent="🟠 DÉMO · FINNHUB INDISPONIBLE";
+    u.classList.add("demo-status");
+    u.classList.remove("real-status");
+  }
+}
 
 function realSymbol(a){
   if(a.type==="crypto") return a.symbol==="BTC"?"BINANCE:BTCUSDT":a.symbol==="ETH"?"BINANCE:ETHUSDT":a.symbol==="SOL"?"BINANCE:SOLUSDT":a.symbol;
@@ -372,8 +445,8 @@ function simulateMarket(){
 
   document.querySelector("#updated").textContent="Démonstration V2.1 • valeurs simulées • "+new Date().toLocaleTimeString("fr-FR");
 }
-setInterval(()=>{ if(realDataEnabled) refreshRealData(); else simulateMarket(); },60000);
 refreshRealData();
+setInterval(refreshRealData,60000);
 
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 renderDashboard();
@@ -390,3 +463,10 @@ document.addEventListener("blur",e=>{
   }
   save();
 },true);
+
+document.addEventListener("DOMContentLoaded",()=>{
+  const buttons=[...document.querySelectorAll("button")];
+  const refresh=buttons.find(b=>b.textContent.includes("↻")||b.getAttribute("aria-label")==="Actualiser");
+  if(refresh) refresh.addEventListener("click",()=>refreshRealData());
+  updateDataStatus();
+});

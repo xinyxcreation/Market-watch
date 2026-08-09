@@ -207,3 +207,18 @@ Sinon définir avant le chargement de l'application :
 - endpoints backend préparés pour news, historique et calendrier des résultats.
 
 Le plan gratuit Finnhub est indiqué comme personnel et limité à 60 appels/minute. La couverture et les droits d'affichage doivent être vérifiés selon l'usage prévu. 
+
+
+## V4.1 — GitHub Pages / statique
+
+Cette version n'utilise plus de backend : elle appelle directement l'API Finnhub depuis la PWA statique.
+
+- `config.js` contient la clé Finnhub fournie pour cette installation.
+- Le bandeau affiche explicitement `🟢 DONNÉES RÉELLES · FINNHUB` quand des cours réels ont été reçus.
+- Si Finnhub ne répond pas, l'application affiche `🟠 DÉMO · FINNHUB INDISPONIBLE`.
+- L'actualisation réelle est effectuée toutes les 60 secondes.
+
+### Important
+Une PWA statique ne peut pas garder une clé API secrète : la clé doit être envoyée au navigateur et peut donc être visible par toute personne ayant accès au site. Si le dépôt GitHub est public, la clé est également visible dans `config.js`. Pour une installation personnelle, cela peut être acceptable selon les conditions de Finnhub. Si la clé doit rester secrète, il faut un backend/proxy.
+
+Finnhub exige un token sur les appels GET et documente les symboles crypto de type `BINANCE:BTCUSDT`. 
