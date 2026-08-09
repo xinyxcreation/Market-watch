@@ -1,11 +1,5 @@
 {
-  "name":"Market Watch",
-  "short_name":"Market Watch",
-  "description":"Suivi personnel crypto et bourse",
-  "start_url":"./",
-  "display":"standalone",
-  "background_color":"#090b0e",
-  "theme_color":"#0b0d10",
-  "lang":"fr-FR",
-  "icons":[{"src":"assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+"name":"Market Watch V1.8","short_name":"Market Watch","start_url":"./index.html","display":"standalone",
+"background_color":"#090b0e","theme_color":"#090b0e","lang":"fr-FR",
+"icons":[{"src":"assets/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
 }
