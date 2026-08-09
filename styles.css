@@ -208,3 +208,10 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
   font-weight:900;
 }
 .quick-opportunities .score-number{font-size:14px;font-weight:950}
+
+/* V3.4 — score colors are set inline after every render, never forced white. */
+.quick-opportunities .score-number,
+.opp-score.score-number{
+  font-weight:950!important;
+  transition:color .2s ease;
+}

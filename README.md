@@ -138,3 +138,10 @@ Les scores et indications sont des aides à la lecture du marché et ne constitu
 - Les scores compacts des cartes utilisent maintenant uniquement les symboles Ⓐ pour Achat et Ⓥ pour Vente.
 - Le libellé texte ACHAT/VENTE a été retiré.
 - Les scores gardent le dégradé rouge → blanc → vert.
+
+
+## V3.4
+- Correction du dégradé de couleur des scores sur la page principale.
+- Les couleurs sont réappliquées après chaque actualisation/rendu.
+- Les scores suivent maintenant réellement le dégradé rouge → blanc → vert à chaque mise à jour.
+- Correction du cas où le CSS imposait à nouveau le blanc après le calcul JavaScript.

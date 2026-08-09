@@ -179,6 +179,8 @@ function renderDashboard(){
   document.querySelector("#watchNow").innerHTML=[...DEMO_NEWS].sort((a,b)=>a.impact==="FORT"?-1:1).slice(0,3).map(newsItem).join("");
   document.querySelector("#updated").textContent=settings.demoMode===false?"Dernière actualisation : "+new Date().toLocaleTimeString("fr-FR"):"Mode démonstration • "+new Date().toLocaleTimeString("fr-FR");
 }
+  applyScoreColors();
+
 function newsItem(n){return `<article class="news-item"><span class="impact">${n.impact}</span><div class="meta">${esc(n.asset)} · Actualité</div><h3>${esc(n.title)}</h3><p>${esc(n.text)}</p></article>`}
 function renderWatchlist(){
   document.querySelector("#watchlistRows").innerHTML=watch.map((a,i)=>{const x=assetInfo(a);return `<div class="watch-row">
@@ -189,6 +191,8 @@ function renderWatchlist(){
     <button class="remove" data-remove="${i}">Suppr.</button>
   </div>`}).join("");
 }
+  applyScoreColors();
+
 function renderNews(){document.querySelector("#newsList").innerHTML=DEMO_NEWS.map(newsItem).join("")}
 function renderEvents(){document.querySelector("#eventList").innerHTML=DEMO_EVENTS.map(e=>`<article class="event"><div class="date-box"><b>${esc(e.date.split(" ")[0])}</b><span>${esc(e.date.split(" ").slice(1).join(" "))}</span></div><div class="event-body"><span class="impact">${esc(e.impact)}</span><div class="meta">${esc(e.asset)} · ${esc(e.kind)}</div><h3>${esc(e.title)}</h3><p>Événement de démonstration — les sources réelles seront branchées via API.</p></div></article>`).join("")}
 function renderDetail(type,symbol){
@@ -228,18 +232,19 @@ function applyScoreColors(){
     let r,g,b;
     if(v<=50){
       const t=v/50;
-      r=Math.round(255*(0.95+0.05*t));
-      g=Math.round(80+(175*t));
-      b=Math.round(90+(165*t));
+      r=255;
+      g=Math.round(78+177*t);
+      b=Math.round(88+167*t);
     }else{
       const t=(v-50)/50;
-      r=Math.round(255-(170*t));
-      g=Math.round(255-(10*t));
-      b=Math.round(255-(145*t));
+      r=Math.round(255-175*t);
+      g=Math.round(255-8*t);
+      b=Math.round(255-145*t);
     }
-    el.style.color=`rgb(${r},${g},${b})`;
+    el.style.setProperty("color",`rgb(${r},${g},${b})`);
   });
 }
+  applyScoreColors();
 
 function show(screen){
   document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("active",s.id===screen));
