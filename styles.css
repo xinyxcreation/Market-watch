@@ -117,3 +117,23 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
   margin-top:0;
   outline:2px solid var(--accent);
 }
+
+/* V2.2 — état des seuils visible aussi sur la fiche détail. */
+.detail-page{
+  border:2px solid transparent;
+  border-radius:24px;
+  padding:22px;
+  margin-top:4px;
+}
+.detail-page.threshold-below{
+  border-color:var(--red);
+  box-shadow:0 0 0 1px rgba(255,91,104,.08),0 14px 40px rgba(255,91,104,.08);
+}
+.detail-page.threshold-above{
+  border-color:var(--green);
+  box-shadow:0 0 0 1px rgba(56,211,159,.08),0 14px 40px rgba(56,211,159,.08);
+}
+.detail-page:not(.threshold-below):not(.threshold-above){
+  border-color:transparent;
+  box-shadow:none;
+}

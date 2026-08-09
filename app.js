@@ -78,7 +78,7 @@ function card(a){
   const pct=Math.max(0,Math.min(100,(x.price-a.min)/(a.max-a.min||1)*100));
   const border=z.state==="below" ? "threshold-below" : z.state==="above" ? "threshold-above" : "";
   const status=z.state==="below" ? "🔴 Sous le mini" : z.state==="above" ? "🟢 Au-dessus du maxi" : "Dans ta zone";
-  return `<article class="asset-card ${border}">
+  return `<article class="asset-card ${border}" data-detail="${a.type}:${a.symbol}">
     <div class="asset-top">
       <div><span class="ticker">${esc(a.symbol)}</span><div class="name">${esc(x.name)}</div></div>
       <span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span>
@@ -97,8 +97,7 @@ function renderDashboard(){
   const cs=watch.filter(a=>a.type==="crypto"), ss=watch.filter(a=>a.type==="stock");
   document.querySelector("#cryptoCards").innerHTML=cs.length?cs.map(card).join(""):`<p class="muted">Aucune crypto surveillée.</p>`;
   document.querySelector("#stockCards").innerHTML=ss.length?ss.map(card).join(""):`<p class="muted">Aucune action surveillée.</p>`;
-  const alerts=watch.filter(a=>zone(a).cls==="red").map(a=>`<div class="alert">⚠️ <b>${esc(a.symbol)}</b> — ${zone(a).label} (${money(assetInfo(a).price,a.type)}). Vérifie ton seuil personnalisé.</div>`);
-  document.querySelector("#alerts").innerHTML=alerts.join("");
+  document.querySelector("#alerts").innerHTML="";
   const avg=watch.length?Math.round(watch.reduce((n,a)=>n+score(a),0)/watch.length):0;
   document.querySelector("#marketPulse").textContent=avg+"/100";
   document.querySelector("#watchNow").innerHTML=[...DEMO_NEWS].sort((a,b)=>a.impact==="FORT"?-1:1).slice(0,3).map(newsItem).join("");
@@ -121,7 +120,9 @@ function renderDetail(type,symbol){
   const x=assetInfo(a),s=score(a),z=zone(a),index=watch.indexOf(a);
   const border=z.state==="below" ? "threshold-below" : z.state==="above" ? "threshold-above" : "";
   const status=z.state==="below" ? "🔴 Sous le mini" : z.state==="above" ? "🟢 Au-dessus du maxi" : "Dans ta zone";
-  document.querySelector("#detailContent").innerHTML=`<div class="detail-head"><div><div class="eyebrow">${type==="crypto"?"CRYPTO":"BOURSE"}</div><h1>${esc(symbol)} · ${esc(x.name)}</h1></div><span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span></div>
+  const detailRoot=document.querySelector("#detailContent");
+detailRoot.className=`detail-page ${border}`;
+detailRoot.innerHTML=`<div class="detail-head"><div><div class="eyebrow">${type==="crypto"?"CRYPTO":"BOURSE"}</div><h1>${esc(symbol)} · ${esc(x.name)}</h1></div><span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span></div>
   <div class="detail-price">${money(x.price,type)} <span class="${x.change>=0?"positive":"negative"}" style="font-size:18px">${x.change>=0?"+":""}${x.change.toFixed(2)} %</span></div>
   <div class="big-chart">${chartSvg(x.history,true)}</div>
   <div class="metrics">

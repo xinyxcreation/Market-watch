@@ -100,3 +100,11 @@ Les scores et indications sont des aides à la lecture du marché et ne constitu
 - Mini et Maxi sont maintenant les champs de saisie eux-mêmes, directement à la place des valeurs 95 000 € et 110 000 €.
 - Suppression du bloc séparé « Seuil minimum / Seuil maximum ».
 - Version affichée : V2.1.
+
+
+## V2.2
+- Retour à l'ouverture de la fiche en cliquant directement sur toute la carte.
+- Suppression du bouton « Voir le détail ».
+- Le liseré rouge/vert de seuil est maintenant aussi appliqué à toute la fiche détail.
+- Suppression des avertissements textuels « Sous ton mini / Au-dessus du maxi » affichés dans le dashboard.
+- Suppression des messages du type « Vérifie ton seuil personnalisé ».
