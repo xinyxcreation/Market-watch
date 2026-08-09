@@ -90,3 +90,30 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
 }
 .metric-input::-webkit-inner-spin-button,
 .metric-input::-webkit-outer-spin-button{opacity:1}
+
+/* V2.1 — Mini/Maxi are editable only in the detail metric boxes. */
+.metric-input{
+  display:block;
+  width:100%;
+  margin-top:5px;
+  padding:0;
+  background:transparent;
+  border:0;
+  color:var(--text);
+  font-size:18px;
+  font-weight:850;
+  line-height:1.2;
+  outline:none;
+  pointer-events:auto;
+  cursor:text;
+  user-select:text;
+  -webkit-user-select:text;
+}
+.metric-input:focus{
+  background:var(--panel2);
+  border:1px solid var(--accent);
+  border-radius:8px;
+  padding:5px 7px;
+  margin-top:0;
+  outline:2px solid var(--accent);
+}

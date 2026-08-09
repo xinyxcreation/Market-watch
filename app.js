@@ -88,14 +88,6 @@ function card(a){
       <div class="badge">⭐ ${s}/100</div>
     </div>
     <div class="mini-chart">${chartSvg(x.history)}</div>
-    <div class="threshold-edit">
-      <label>Mini
-        <input type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="min" value="${a.min}">
-      </label>
-      <label>Maxi
-        <input type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="max" value="${a.max}">
-      </label>
-    </div>
     <div class="range"><span>${money(a.min,a.type)}</span><span>${money(a.max,a.type)}</span></div>
     <div class="range-bar"><div class="range-fill" style="width:${pct}%"></div></div>
     <button type="button" class="small-btn detail-button" data-detail="${a.type}:${a.symbol}">Voir le détail →</button>
@@ -132,15 +124,11 @@ function renderDetail(type,symbol){
   document.querySelector("#detailContent").innerHTML=`<div class="detail-head"><div><div class="eyebrow">${type==="crypto"?"CRYPTO":"BOURSE"}</div><h1>${esc(symbol)} · ${esc(x.name)}</h1></div><span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span></div>
   <div class="detail-price">${money(x.price,type)} <span class="${x.change>=0?"positive":"negative"}" style="font-size:18px">${x.change>=0?"+":""}${x.change.toFixed(2)} %</span></div>
   <div class="big-chart">${chartSvg(x.history,true)}</div>
-  <div class="threshold-detail ${border}">
-    <label>Seuil minimum
-      <input type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="min" value="${a.min}">
-    </label>
-    <label>Seuil maximum
-      <input type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="max" value="${a.max}">
-    </label>
+  <div class="metrics">
+    <div class="metric"><span class="muted">Score</span><b>${s}/100</b></div>
+    <div class="metric"><span class="muted">Mini</span><input class="metric-input" type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="min" value="${a.min}"></div>
+    <div class="metric"><span class="muted">Maxi</span><input class="metric-input" type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="max" value="${a.max}"></div>
   </div>
-  <div class="metrics"><div class="metric"><span class="muted">Score</span><b>${s}/100</b></div><div class="metric"><span class="muted">Mini</span><b>${money(a.min,type)}</b></div><div class="metric"><span class="muted">Maxi</span><b>${money(a.max,type)}</b></div></div>
   <div class="settings-card" style="margin-top:12px"><h3>🧠 Analyse automatique</h3><p>Score basé sur la position dans ta zone, la variation récente et la volatilité disponible dans la V1.</p><p><b>${s>=75?"🔥 Intérêt élevé":s>=55?"🟠 À surveiller":"🔵 Calme"}</b> — cette indication ne constitue pas un conseil financier.</p></div>`;
 }
 function show(screen){
@@ -231,7 +219,7 @@ function simulateMarket(){
     }
   }
 
-  document.querySelector("#updated").textContent="Démonstration V1.9 • valeurs simulées • "+new Date().toLocaleTimeString("fr-FR");
+  document.querySelector("#updated").textContent="Démonstration V2.1 • valeurs simulées • "+new Date().toLocaleTimeString("fr-FR");
 }
 setInterval(simulateMarket,5000);
 

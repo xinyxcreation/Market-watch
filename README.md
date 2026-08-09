@@ -91,3 +91,12 @@ Les scores et indications sont des aides à la lecture du marché et ne constitu
 - L'édition est disponible uniquement dans la fiche détaillée.
 - Les deux champs sont placés directement dans les blocs « Mini » et « Maxi » à côté du Score.
 - Le graphique et le statut utilisent immédiatement les nouveaux seuils.
+
+
+## V2.1
+- Correction du vrai bug de V2.0.
+- La page principale n'a plus aucun champ Mini/Maxi.
+- Dans la fiche détaillée, les blocs Score / Mini / Maxi sont conservés.
+- Mini et Maxi sont maintenant les champs de saisie eux-mêmes, directement à la place des valeurs 95 000 € et 110 000 €.
+- Suppression du bloc séparé « Seuil minimum / Seuil maximum ».
+- Version affichée : V2.1.
