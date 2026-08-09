@@ -89,7 +89,7 @@ function card(a){
     </div>
     <div class="mini-chart">${chartSvg(x.history)}</div>
     <div class="threshold-edit">
-      <button type="button" class="threshold-button" data-edit-threshold="${index}">⚙ Modifier mini / maxi</button>
+      <button type="button" class="threshold-button" onclick="event.stopPropagation(); window.openThresholdModal(${index}); return false;">⚙ Modifier mini / maxi</button>
     </div>
     <div class="range"><span>${money(a.min,a.type)}</span><span>${money(a.max,a.type)}</span></div>
     <div class="range-bar"><div class="range-fill" style="width:${pct}%"></div></div>
@@ -135,7 +135,7 @@ function show(screen){
   if(screen==="events")renderEvents();
 }
 
-function openThresholdModal(index){
+window.openThresholdModal = function(index){
   const a=watch[index];
   if(!a) return;
   const x=assetInfo(a);
@@ -145,15 +145,15 @@ function openThresholdModal(index){
     modal.id="thresholdModal";
     modal.className="modal-backdrop";
     modal.innerHTML=`<div class="modal" role="dialog" aria-modal="true">
-      <button type="button" class="modal-close" data-close-threshold>×</button>
+      <button type="button" class="modal-close" onclick="window.closeThresholdModal(); return false;">×</button>
       <div class="eyebrow">SEUILS PERSONNALISÉS</div>
       <h2 id="thresholdTitle"></h2>
       <p class="muted">Modifie les valeurs puis appuie sur Enregistrer.</p>
       <label>Minimum<input id="modalMin" type="number" inputmode="decimal" step="any"></label>
       <label>Maximum<input id="modalMax" type="number" inputmode="decimal" step="any"></label>
       <div class="modal-actions">
-        <button type="button" class="small-btn" data-close-threshold>Annuler</button>
-        <button type="button" class="primary" id="saveThresholdModal">Enregistrer</button>
+        <button type="button" class="small-btn" onclick="window.closeThresholdModal(); return false;">Annuler</button>
+        <button type="button" class="primary" onclick="window.saveThresholdModal(); return false;">Enregistrer</button>
       </div>
     </div>`;
     document.body.appendChild(modal);
@@ -165,43 +165,28 @@ function openThresholdModal(index){
   modal.classList.add("open");
   setTimeout(()=>modal.querySelector("#modalMin").focus(),30);
 }
-function closeThresholdModal(){
+window.closeThresholdModal = function(){
   document.querySelector("#thresholdModal")?.classList.remove("open");
 }
-document.addEventListener("click",e=>{
-  const edit=e.target.closest("[data-edit-threshold]");
-  if(edit){
-    e.preventDefault();
-    e.stopPropagation();
-    openThresholdModal(Number(edit.dataset.editThreshold));
+window.saveThresholdModal = function(){
+  const modal=document.querySelector("#thresholdModal");
+  if(!modal) return;
+  const i=Number(modal.dataset.index);
+  const min=Number(modal.querySelector("#modalMin").value);
+  const max=Number(modal.querySelector("#modalMax").value);
+  if(!Number.isFinite(min)||!Number.isFinite(max)||min<0||max<0||min>=max){
+    alert("Le minimum doit être inférieur au maximum.");
     return;
   }
-  if(e.target.closest("[data-close-threshold]")){
-    e.preventDefault();
-    closeThresholdModal();
-    return;
-  }
-  if(e.target.id==="saveThresholdModal"){
-    e.preventDefault();
-    const modal=document.querySelector("#thresholdModal");
-    const i=Number(modal.dataset.index);
-    const min=Number(modal.querySelector("#modalMin").value);
-    const max=Number(modal.querySelector("#modalMax").value);
-    if(!Number.isFinite(min)||!Number.isFinite(max)||min<0||max<0||min>=max){
-      alert("Les seuils doivent être valides et le minimum doit être inférieur au maximum.");
-      return;
-    }
-    watch[i].min=min;
-    watch[i].max=max;
-    save();
-    closeThresholdModal();
-    renderDashboard();
-    renderWatchlist();
-    const active=document.querySelector(".screen.active")?.id;
-    if(active==="detail") renderDetail(watch[i].type,watch[i].symbol);
-    return;
-  }
-});
+  watch[i].min=min;
+  watch[i].max=max;
+  save();
+  window.closeThresholdModal();
+  renderDashboard();
+  renderWatchlist();
+  const active=document.querySelector(".screen.active")?.id;
+  if(active==="detail") renderDetail(watch[i].type,watch[i].symbol);
+};
 
 document.addEventListener("click",e=>{
   if(e.target.closest("input,select,textarea,button")) return;

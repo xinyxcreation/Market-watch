@@ -58,3 +58,13 @@ Les scores et indications sont des aides à la lecture du marché et ne constitu
 - Bouton explicite « Modifier mini / maxi ».
 - Fenêtre d'édition avec deux champs clairement cliquables.
 - Enregistrement explicite des seuils.
+
+
+## V1.5
+- Les boutons de modification utilisent maintenant un clic HTML direct (`onclick`) afin de ne plus dépendre de la délégation d'événements JavaScript.
+- Enregistrement des seuils également déclenché directement par le bouton.
+
+
+## V1.6
+- Correction de l'enregistrement de la fenêtre des seuils.
+- Bouton Enregistrer fonctionnel directement.
