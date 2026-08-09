@@ -51,3 +51,10 @@ Les scores et indications sont des aides à la lecture du marché et ne constitu
 - Les champs ne déclenchent plus l'ouverture de la fiche au clic.
 - Validation par perte de focus ou touche Entrée.
 - Correction du cache du service worker.
+
+
+## V1.4
+- Remplacement de l'édition directe qui pouvait être interceptée par la carte.
+- Bouton explicite « Modifier mini / maxi ».
+- Fenêtre d'édition avec deux champs clairement cliquables.
+- Enregistrement explicite des seuils.

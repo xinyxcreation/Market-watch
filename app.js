@@ -89,8 +89,7 @@ function card(a){
     </div>
     <div class="mini-chart">${chartSvg(x.history)}</div>
     <div class="threshold-edit">
-      <label>Mini <input type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="min" value="${a.min}"></label>
-      <label>Maxi <input type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="max" value="${a.max}"></label>
+      <button type="button" class="threshold-button" data-edit-threshold="${index}">⚙ Modifier mini / maxi</button>
     </div>
     <div class="range"><span>${money(a.min,a.type)}</span><span>${money(a.max,a.type)}</span></div>
     <div class="range-bar"><div class="range-fill" style="width:${pct}%"></div></div>
@@ -135,6 +134,75 @@ function show(screen){
   if(screen==="news")renderNews();
   if(screen==="events")renderEvents();
 }
+
+function openThresholdModal(index){
+  const a=watch[index];
+  if(!a) return;
+  const x=assetInfo(a);
+  let modal=document.querySelector("#thresholdModal");
+  if(!modal){
+    modal=document.createElement("div");
+    modal.id="thresholdModal";
+    modal.className="modal-backdrop";
+    modal.innerHTML=`<div class="modal" role="dialog" aria-modal="true">
+      <button type="button" class="modal-close" data-close-threshold>×</button>
+      <div class="eyebrow">SEUILS PERSONNALISÉS</div>
+      <h2 id="thresholdTitle"></h2>
+      <p class="muted">Modifie les valeurs puis appuie sur Enregistrer.</p>
+      <label>Minimum<input id="modalMin" type="number" inputmode="decimal" step="any"></label>
+      <label>Maximum<input id="modalMax" type="number" inputmode="decimal" step="any"></label>
+      <div class="modal-actions">
+        <button type="button" class="small-btn" data-close-threshold>Annuler</button>
+        <button type="button" class="primary" id="saveThresholdModal">Enregistrer</button>
+      </div>
+    </div>`;
+    document.body.appendChild(modal);
+  }
+  modal.dataset.index=String(index);
+  modal.querySelector("#thresholdTitle").textContent=`${a.symbol} · ${x.name}`;
+  modal.querySelector("#modalMin").value=a.min;
+  modal.querySelector("#modalMax").value=a.max;
+  modal.classList.add("open");
+  setTimeout(()=>modal.querySelector("#modalMin").focus(),30);
+}
+function closeThresholdModal(){
+  document.querySelector("#thresholdModal")?.classList.remove("open");
+}
+document.addEventListener("click",e=>{
+  const edit=e.target.closest("[data-edit-threshold]");
+  if(edit){
+    e.preventDefault();
+    e.stopPropagation();
+    openThresholdModal(Number(edit.dataset.editThreshold));
+    return;
+  }
+  if(e.target.closest("[data-close-threshold]")){
+    e.preventDefault();
+    closeThresholdModal();
+    return;
+  }
+  if(e.target.id==="saveThresholdModal"){
+    e.preventDefault();
+    const modal=document.querySelector("#thresholdModal");
+    const i=Number(modal.dataset.index);
+    const min=Number(modal.querySelector("#modalMin").value);
+    const max=Number(modal.querySelector("#modalMax").value);
+    if(!Number.isFinite(min)||!Number.isFinite(max)||min<0||max<0||min>=max){
+      alert("Les seuils doivent être valides et le minimum doit être inférieur au maximum.");
+      return;
+    }
+    watch[i].min=min;
+    watch[i].max=max;
+    save();
+    closeThresholdModal();
+    renderDashboard();
+    renderWatchlist();
+    const active=document.querySelector(".screen.active")?.id;
+    if(active==="detail") renderDetail(watch[i].type,watch[i].symbol);
+    return;
+  }
+});
+
 document.addEventListener("click",e=>{
   if(e.target.closest("input,select,textarea,button")) return;
   const open=e.target.closest("[data-open]"); if(open){show(open.dataset.open);return}
@@ -142,9 +210,6 @@ document.addEventListener("click",e=>{
   const rem=e.target.closest("[data-remove]"); if(rem){watch.splice(+rem.dataset.remove,1);save();renderWatchlist();renderDashboard()}
 });
 
-document.addEventListener("pointerdown",e=>{
-  if(e.target.closest("input,select,textarea,button")) e.stopPropagation();
-}, true);
 document.addEventListener("change",e=>{
   if(e.target.matches("[data-field]")){
     const i=+e.target.dataset.i,f=e.target.dataset.field;
@@ -201,15 +266,3 @@ setInterval(simulateMarket,5000);
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 renderDashboard();
 
-document.addEventListener("keydown",e=>{
-  if(!e.target.matches("[data-threshold-index]")) return;
-  if(e.key==="Enter"){
-    e.preventDefault();
-    e.target.blur();
-  }
-});
-document.addEventListener("blur",e=>{
-  if(!e.target.matches("[data-threshold-index]")) return;
-  const i=+e.target.dataset.thresholdIndex,f=e.target.dataset.thresholdField;
-  updateThreshold(i,f,e.target.value);
-}, true);

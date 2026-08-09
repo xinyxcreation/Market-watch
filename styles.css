@@ -34,3 +34,18 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
 
 .threshold-edit input,.threshold-detail input{cursor:text;pointer-events:auto;user-select:text;-webkit-user-select:text}
 .threshold-edit,.threshold-detail{position:relative;z-index:5}
+
+.threshold-edit{margin:10px 0 6px;position:relative;z-index:6}
+.threshold-button{width:100%;padding:9px 10px;font-size:12px}
+.threshold-detail{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
+.threshold-detail strong{display:block;font-size:18px;margin-top:4px}
+.modal-backdrop{display:none;position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.72);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:18px}
+.modal-backdrop.open{display:flex}
+.modal{position:relative;width:min(430px,100%);background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:22px;box-shadow:0 25px 80px rgba(0,0,0,.5)}
+.modal h2{margin:5px 0;font-size:22px}
+.modal label{display:block;color:var(--muted);font-size:12px;font-weight:800;margin-top:15px}
+.modal input{display:block;width:100%;margin-top:6px;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:13px;border-radius:11px;font-size:17px}
+.modal input:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+.modal-close{position:absolute;right:12px;top:10px;border:0;background:none;color:var(--muted);font-size:28px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+@media(max-width:650px){.threshold-detail{grid-template-columns:1fr 1fr}.threshold-detail .threshold-button{grid-column:1/-1}}
