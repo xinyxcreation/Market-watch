@@ -84,3 +84,10 @@ Les scores et indications sont des aides à la lecture du marché et ne constitu
 - Correction du moteur de simulation : il ne remplace jamais le bloc Mini/Maxi.
 - La simulation continue toutes les 5 secondes sans interrompre une saisie en cours.
 - Le bandeau indique « Démonstration V1.9 » pour confirmer le bon fichier chargé.
+
+
+## V2.0
+- Les seuils Mini/Maxi ne sont plus modifiables sur la page principale.
+- L'édition est disponible uniquement dans la fiche détaillée.
+- Les deux champs sont placés directement dans les blocs « Mini » et « Maxi » à côté du Score.
+- Le graphique et le statut utilisent immédiatement les nouveaux seuils.

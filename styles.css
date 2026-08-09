@@ -64,3 +64,29 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
 .threshold-edit{position:relative;z-index:10}
 .threshold-edit input,.threshold-detail input{pointer-events:auto!important;cursor:text!important;user-select:text!important;-webkit-user-select:text!important}
 .threshold-edit input:focus,.threshold-detail input:focus{outline:2px solid var(--accent)!important;border-color:var(--accent)!important}
+
+/* V2.0 — seuils éditables uniquement dans la fiche détail. */
+.metric-input{
+  display:block;
+  width:100%;
+  margin-top:5px;
+  background:var(--panel2);
+  border:1px solid var(--line);
+  color:var(--text);
+  padding:0;
+  border-radius:8px;
+  font-size:18px;
+  font-weight:850;
+  line-height:1.2;
+  outline:none;
+  pointer-events:auto;
+  user-select:text;
+  -webkit-user-select:text;
+}
+.metric-input:focus{
+  border-color:var(--accent);
+  outline:2px solid var(--accent);
+  outline-offset:1px;
+}
+.metric-input::-webkit-inner-spin-button,
+.metric-input::-webkit-outer-spin-button{opacity:1}
