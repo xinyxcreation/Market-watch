@@ -278,3 +278,12 @@ CoinGecko documente son API publique sans clé pour le prototypage et l'endpoint
 - 3 cards par ligne sur grand écran, 2 sur tablette, 1 sur mobile.
 - Chaque card conserve le liseré rouge/vert des seuils.
 - Courbe d'accueil = historique réel 7 jours, uniquement visuel.
+
+
+## V4.8
+- Correction du chargement infini du graphique historique crypto.
+- Timeout réseau de 12 secondes sur CoinGecko.
+- Mise en cache locale de l'historique réel 7J/1J/1M/etc.
+- Le graphique ne fabrique plus une fausse courbe 7J à partir des cours courants.
+- Si CoinGecko est temporairement limité, le dernier historique réel en cache est réutilisé.
+- Le détail affiche explicitement `7J · historique en attente` au lieu de rester bloqué sur `Chargement`.

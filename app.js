@@ -80,12 +80,18 @@ async function finnhub(path, params={}){
   return json;
 }
 
-async function gecko(path, params={}){
+async function gecko(path, params={}, timeoutMs=12000){
   const u=new URL(COINGECKO_BASE+path);
   Object.entries(params).forEach(([k,v])=>u.searchParams.set(k,v));
-  const r=await fetch(u.toString(),{cache:"no-store"});
-  if(!r.ok) throw new Error(`CoinGecko HTTP ${r.status}`);
-  return r.json();
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),timeoutMs);
+  try{
+    const r=await fetch(u.toString(),{cache:"no-store",signal:controller.signal});
+    if(!r.ok) throw new Error(`CoinGecko HTTP ${r.status}`);
+    return await r.json();
+  }finally{
+    clearTimeout(timer);
+  }
 }
 
 function loadStockHistory(){
@@ -134,8 +140,17 @@ async function refreshCrypto(){
       x.chartHistory={"7":(hist.prices||[]).map(p=>({t:p[0],v:p[1]})).filter(p=>Number.isFinite(p.v))};
       x.history=x.chartHistory["7"].map(p=>p.v);
     }catch{
-      if(!Array.isArray(x.history))x.history=[];
-      x.history=[...x.history.slice(-119),x.price];
+      const cached=getCachedCryptoHistory(a.symbol,"7");
+      if(cached.length>=2){
+        x.chartHistory={"7":cached};
+        x.history=cached.map(p=>p.v);
+      }else{
+        x.chartHistory ||= {};
+        x.history=Array.isArray(x.history)?x.history:[];
+      }
+    }
+    if(x.chartHistory?.["7"]?.length>=2){
+      cacheCryptoHistory(a.symbol,"7",x.chartHistory["7"]);
     }
     ok++;
   }
@@ -379,7 +394,7 @@ function chartSvg(history,large=false){
 }
 function weeklyHomeChart(a){
   const points=a.chartHistory?.["7"];
-  if(!Array.isArray(points)||points.length<2) return `<div class="chart-no-data">7J · historique indisponible</div>`;
+  if(!Array.isArray(points)||points.length<2) return `<div class="chart-no-data">7J · historique en attente</div>`;
   const vals=points.map(p=>p.v).filter(Number.isFinite);
   return `<div class="weekly-home-chart">
     ${chartSvg(vals,false)}
@@ -426,22 +441,70 @@ function interactiveChart(a){
     <div class="chart-help">Clique ou touche un point pour afficher précisément le prix et l'heure.</div>
   </div>`;
 }
+const CRYPTO_HISTORY_KEY="market-watch-crypto-history-v1";
+function loadCryptoHistoryCache(){
+  try{return JSON.parse(localStorage.getItem(CRYPTO_HISTORY_KEY)||"{}")||{};}catch{return {};}
+}
+function saveCryptoHistoryCache(h){
+  try{localStorage.setItem(CRYPTO_HISTORY_KEY,JSON.stringify(h));}catch{}
+}
+function cacheCryptoHistory(symbol,range,points){
+  if(!Array.isArray(points)||points.length<2)return;
+  const h=loadCryptoHistoryCache();
+  h[symbol] ||= {};
+  h[symbol][range]=points;
+  saveCryptoHistoryCache(h);
+}
+function getCachedCryptoHistory(symbol,range){
+  const h=loadCryptoHistoryCache();
+  return h?.[symbol]?.[range]||[];
+}
+function normalizeCryptoHistory(raw){
+  return (raw?.prices||[]).map(p=>({t:Number(p[0]),v:Number(p[1])}))
+    .filter(p=>Number.isFinite(p.t)&&Number.isFinite(p.v)&&p.v>0);
+}
+
 async function loadDetailHistory(a){
   const token=++detailChartToken;
   if(a.type!=="crypto")return;
   a.chartHistory ||= {};
-  if(a.chartHistory[detailChartRange])return;
-  try{
-    const q=await gecko(`/coins/${coinId(a.symbol)}/market_chart`,{vs_currency:"eur",days:detailChartRange});
-    if(token!==detailChartToken)return;
-    a.chartHistory[detailChartRange]=(q.prices||[]).map(p=>({t:p[0],v:p[1]})).filter(p=>Number.isFinite(p.v));
+
+  // Reuse the real 7-day history already downloaded by the dashboard.
+  const existing=a.chartHistory[detailChartRange];
+  if(Array.isArray(existing)&&existing.length>=2){
     renderDetail(a.type,a.symbol,false);
+    return;
+  }
+
+  const cached=getCachedCryptoHistory(a.symbol,detailChartRange);
+  if(cached.length>=2){
+    a.chartHistory[detailChartRange]=cached;
+    renderDetail(a.type,a.symbol,false);
+    // Refresh silently in the background.
+  }
+
+  try{
+    const q=await gecko(`/coins/${coinId(a.symbol)}/market_chart`,
+      {vs_currency:"eur",days:detailChartRange},12000);
+    if(token!==detailChartToken)return;
+    const points=normalizeCryptoHistory(q);
+    if(points.length>=2){
+      a.chartHistory[detailChartRange]=points;
+      cacheCryptoHistory(a.symbol,detailChartRange,points);
+    }else if(!cached.length){
+      a.chartHistory[detailChartRange]=[];
+    }
   }catch(e){
     if(token!==detailChartToken)return;
-    a.chartHistory[detailChartRange]=[];
-    renderDetail(a.type,a.symbol,false);
+    if(cached.length>=2){
+      a.chartHistory[detailChartRange]=cached;
+    }else{
+      a.chartHistory[detailChartRange]=[];
+    }
   }
+  if(token===detailChartToken) renderDetail(a.type,a.symbol,false);
 }
+
 
 function card(a){
   const index=watch.indexOf(a), x=assetInfo(a), z=zone(a), s=score(a);
