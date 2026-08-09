@@ -162,3 +162,8 @@ Les scores et indications sont des aides à la lecture du marché et ne constitu
 - Le symbole Ⓐ/Ⓥ et son score reçoivent maintenant la couleur directement dans le HTML.
 - La couleur utilise aussi `-webkit-text-fill-color` pour éviter les règles de texte qui la masquent.
 - Les couleurs sont recréées à chaque rendu des cartes, donc ne dépendent plus d'un traitement après actualisation.
+
+
+## V3.7
+- Affichage des scores en pourcentage : `0 %`, `57 %`, `100 %`.
+- Suppression de la notation `0/100` dans la fiche détaillée.
