@@ -167,3 +167,43 @@ Les scores et indications sont des aides à la lecture du marché et ne constitu
 ## V3.7
 - Affichage des scores en pourcentage : `0 %`, `57 %`, `100 %`.
 - Suppression de la notation `0/100` dans la fiche détaillée.
+
+
+## V4.0 — Données réelles Finnhub
+
+La PWA peut maintenant utiliser un petit backend Fastify pour récupérer les données réelles sans exposer la clé Finnhub dans le navigateur.
+
+### 1. Créer la clé Finnhub
+Créer un compte et récupérer la clé API depuis le tableau de bord Finnhub.
+
+### 2. Installer l'API
+```bash
+npm install
+cp .env.example .env
+nano .env
+```
+Mettre la clé dans `FINNHUB_API_KEY`.
+
+### 3. Lancer
+```bash
+npm start
+```
+
+Par défaut l'API écoute sur `http://localhost:8787`.
+
+### 4. PWA
+Si la PWA est servie par le même serveur/proxy que l'API, elle utilise automatiquement `/api`.
+Sinon définir avant le chargement de l'application :
+```html
+<script>window.MARKET_WATCH_API="https://ton-api.example.com/api";</script>
+```
+
+### Données V4
+- cours réels BTC / ETH / SOL / NVDA / TSLA via Finnhub ;
+- variation réelle ;
+- actualisation périodique ;
+- conservation de l'interface, seuils et scores ;
+- historique reste prêt pour le vrai graphique ;
+- endpoints backend préparés pour news, historique et calendrier des résultats.
+
+Le plan gratuit Finnhub est indiqué comme personnel et limité à 60 appels/minute. La couverture et les droits d'affichage doivent être vérifiés selon l'usage prévu. 
