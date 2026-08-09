@@ -78,7 +78,7 @@ function card(a){
   const pct=Math.max(0,Math.min(100,(x.price-a.min)/(a.max-a.min||1)*100));
   const border=z.state==="below" ? "threshold-below" : z.state==="above" ? "threshold-above" : "";
   const status=z.state==="below" ? "🔴 Sous le mini" : z.state==="above" ? "🟢 Au-dessus du maxi" : "Dans ta zone";
-  return `<article class="asset-card ${border}" data-detail="${a.type}:${a.symbol}">
+  return `<article class="asset-card ${border}">
     <div class="asset-top">
       <div><span class="ticker">${esc(a.symbol)}</span><div class="name">${esc(x.name)}</div></div>
       <span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span>
@@ -89,10 +89,16 @@ function card(a){
     </div>
     <div class="mini-chart">${chartSvg(x.history)}</div>
     <div class="threshold-edit">
-      <button type="button" class="threshold-button" onclick="event.stopPropagation(); window.openThresholdModal(${index}); return false;">⚙ Modifier mini / maxi</button>
+      <label>Mini
+        <input type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="min" value="${a.min}">
+      </label>
+      <label>Maxi
+        <input type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="max" value="${a.max}">
+      </label>
     </div>
     <div class="range"><span>${money(a.min,a.type)}</span><span>${money(a.max,a.type)}</span></div>
     <div class="range-bar"><div class="range-fill" style="width:${pct}%"></div></div>
+    <button type="button" class="small-btn detail-button" data-detail="${a.type}:${a.symbol}">Voir le détail →</button>
   </article>`;
 }
 function renderDashboard(){
@@ -119,10 +125,21 @@ function renderWatchlist(){
 function renderNews(){document.querySelector("#newsList").innerHTML=DEMO_NEWS.map(newsItem).join("")}
 function renderEvents(){document.querySelector("#eventList").innerHTML=DEMO_EVENTS.map(e=>`<article class="event"><div class="date-box"><b>${esc(e.date.split(" ")[0])}</b><span>${esc(e.date.split(" ").slice(1).join(" "))}</span></div><div class="event-body"><span class="impact">${esc(e.impact)}</span><div class="meta">${esc(e.asset)} · ${esc(e.kind)}</div><h3>${esc(e.title)}</h3><p>Événement de démonstration — les sources réelles seront branchées via API.</p></div></article>`).join("")}
 function renderDetail(type,symbol){
-  const a=watch.find(x=>x.type===type&&x.symbol===symbol)||{type,symbol,min:0,max:0},x=assetInfo(a),s=score(a),z=zone(a);
-  document.querySelector("#detailContent").innerHTML=`<div class="detail-head"><div><div class="eyebrow">${type==="crypto"?"CRYPTO":"BOURSE"}</div><h1>${esc(symbol)} · ${esc(x.name)}</h1></div><span class="badge ${z.cls}">${z.label}</span></div>
-  <div class="detail-price">${money(x.price,type)} <span class="${x.change>=0?"positive":"negative"}" style="font-size:18px">${x.change>=0?"+":""}${x.change}%</span></div>
+  const a=watch.find(x=>x.type===type&&x.symbol===symbol)||{type,symbol,min:0,max:0};
+  const x=assetInfo(a),s=score(a),z=zone(a),index=watch.indexOf(a);
+  const border=z.state==="below" ? "threshold-below" : z.state==="above" ? "threshold-above" : "";
+  const status=z.state==="below" ? "🔴 Sous le mini" : z.state==="above" ? "🟢 Au-dessus du maxi" : "Dans ta zone";
+  document.querySelector("#detailContent").innerHTML=`<div class="detail-head"><div><div class="eyebrow">${type==="crypto"?"CRYPTO":"BOURSE"}</div><h1>${esc(symbol)} · ${esc(x.name)}</h1></div><span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span></div>
+  <div class="detail-price">${money(x.price,type)} <span class="${x.change>=0?"positive":"negative"}" style="font-size:18px">${x.change>=0?"+":""}${x.change.toFixed(2)} %</span></div>
   <div class="big-chart">${chartSvg(x.history,true)}</div>
+  <div class="threshold-detail ${border}">
+    <label>Seuil minimum
+      <input type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="min" value="${a.min}">
+    </label>
+    <label>Seuil maximum
+      <input type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="max" value="${a.max}">
+    </label>
+  </div>
   <div class="metrics"><div class="metric"><span class="muted">Score</span><b>${s}/100</b></div><div class="metric"><span class="muted">Mini</span><b>${money(a.min,type)}</b></div><div class="metric"><span class="muted">Maxi</span><b>${money(a.max,type)}</b></div></div>
   <div class="settings-card" style="margin-top:12px"><h3>🧠 Analyse automatique</h3><p>Score basé sur la position dans ta zone, la variation récente et la volatilité disponible dans la V1.</p><p><b>${s>=75?"🔥 Intérêt élevé":s>=55?"🟠 À surveiller":"🔵 Calme"}</b> — cette indication ne constitue pas un conseil financier.</p></div>`;
 }
@@ -135,75 +152,37 @@ function show(screen){
   if(screen==="events")renderEvents();
 }
 
-window.openThresholdModal = function(index){
-  const a=watch[index];
-  if(!a) return;
-  const x=assetInfo(a);
-  let modal=document.querySelector("#thresholdModal");
-  if(!modal){
-    modal=document.createElement("div");
-    modal.id="thresholdModal";
-    modal.className="modal-backdrop";
-    modal.innerHTML=`<div class="modal" role="dialog" aria-modal="true">
-      <button type="button" class="modal-close" onclick="window.closeThresholdModal(); return false;">×</button>
-      <div class="eyebrow">SEUILS PERSONNALISÉS</div>
-      <h2 id="thresholdTitle"></h2>
-      <p class="muted">Modifie les valeurs puis appuie sur Enregistrer.</p>
-      <label>Minimum<input id="modalMin" type="number" inputmode="decimal" step="any"></label>
-      <label>Maximum<input id="modalMax" type="number" inputmode="decimal" step="any"></label>
-      <div class="modal-actions">
-        <button type="button" class="small-btn" onclick="window.closeThresholdModal(); return false;">Annuler</button>
-        <button type="button" class="primary" onclick="window.saveThresholdModal(); return false;">Enregistrer</button>
-      </div>
-    </div>`;
-    document.body.appendChild(modal);
-  }
-  modal.dataset.index=String(index);
-  modal.querySelector("#thresholdTitle").textContent=`${a.symbol} · ${x.name}`;
-  modal.querySelector("#modalMin").value=a.min;
-  modal.querySelector("#modalMax").value=a.max;
-  modal.classList.add("open");
-  setTimeout(()=>modal.querySelector("#modalMin").focus(),30);
-}
-window.closeThresholdModal = function(){
-  document.querySelector("#thresholdModal")?.classList.remove("open");
-}
-window.saveThresholdModal = function(){
-  const modal=document.querySelector("#thresholdModal");
-  if(!modal) return;
-  const i=Number(modal.dataset.index);
-  const min=Number(modal.querySelector("#modalMin").value);
-  const max=Number(modal.querySelector("#modalMax").value);
-  if(!Number.isFinite(min)||!Number.isFinite(max)||min<0||max<0||min>=max){
-    alert("Le minimum doit être inférieur au maximum.");
-    return;
-  }
-  watch[i].min=min;
-  watch[i].max=max;
-  save();
-  window.closeThresholdModal();
-  renderDashboard();
-  renderWatchlist();
-  const active=document.querySelector(".screen.active")?.id;
-  if(active==="detail") renderDetail(watch[i].type,watch[i].symbol);
-};
 
 document.addEventListener("click",e=>{
-  if(e.target.closest("input,select,textarea,button")) return;
-  const open=e.target.closest("[data-open]"); if(open){show(open.dataset.open);return}
-  const detail=e.target.closest("[data-detail]"); if(detail){const [type,symbol]=detail.dataset.detail.split(":");show("detail");renderDetail(type,symbol)}
-  const rem=e.target.closest("[data-remove]"); if(rem){watch.splice(+rem.dataset.remove,1);save();renderWatchlist();renderDashboard()}
+  const open=e.target.closest("[data-open]");
+  if(open){show(open.dataset.open);return}
+  const detail=e.target.closest("[data-detail]");
+  if(detail){
+    const [type,symbol]=detail.dataset.detail.split(":");
+    show("detail");
+    renderDetail(type,symbol);
+    return;
+  }
+  const rem=e.target.closest("[data-remove]");
+  if(rem){watch.splice(+rem.dataset.remove,1);save();renderWatchlist();renderDashboard()}
 });
 
 document.addEventListener("change",e=>{
-  if(e.target.matches("[data-field]")){
-    const i=+e.target.dataset.i,f=e.target.dataset.field;
-    updateThreshold(i,f,e.target.value);
+  if(!e.target.matches("[data-threshold-index]")) return;
+  const i=+e.target.dataset.thresholdIndex;
+  const f=e.target.dataset.thresholdField;
+  const n=Number(e.target.value);
+  if(!Number.isFinite(n) || n<0) return;
+  watch[i][f]=n;
+  if(watch[i].min>=watch[i].max){
+    if(f==="min") watch[i].max=n+1;
+    else watch[i].min=Math.max(0,n-1);
   }
-  if(e.target.matches("[data-threshold-index]")){
-    const i=+e.target.dataset.thresholdIndex,f=e.target.dataset.thresholdField;
-    updateThreshold(i,f,e.target.value);
-  }
+  save();
+  const active=document.querySelector(".screen.active")?.id;
+  if(active==="detail") renderDetail(watch[i].type,watch[i].symbol);
+  else if(active==="watchlist") renderWatchlist();
+  else if(active==="dashboard") renderDashboard();
 });
 document.querySelector("#addAssetBtn").onclick=()=>{
   const symbol=document.querySelector("#assetInput").value.trim().toUpperCase(),type=document.querySelector("#assetType").value;
@@ -235,7 +214,8 @@ function simulateMarket(){
       x.history=[...x.history.slice(-13),x.price];
     });
   });
-  renderDashboard();
+  const editing=document.activeElement?.matches("[data-threshold-index]");
+  if(!editing) renderDashboard();
   const active=document.querySelector(".screen.active")?.id;
   if(active==="watchlist") renderWatchlist();
   if(active==="detail"){
@@ -251,3 +231,15 @@ setInterval(simulateMarket,5000);
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 renderDashboard();
 
+
+document.addEventListener("blur",e=>{
+  if(!e.target.matches("[data-threshold-index]")) return;
+  const i=+e.target.dataset.thresholdIndex, f=e.target.dataset.thresholdField, n=Number(e.target.value);
+  if(!Number.isFinite(n)||n<0) return;
+  watch[i][f]=n;
+  if(watch[i].min>=watch[i].max){
+    if(f==="min") watch[i].max=n+1;
+    else watch[i].min=Math.max(0,n-1);
+  }
+  save();
+},true);

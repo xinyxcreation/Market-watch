@@ -68,3 +68,11 @@ Les scores et indications sont des aides à la lecture du marché et ne constitu
 ## V1.6
 - Correction de l'enregistrement de la fenêtre des seuils.
 - Bouton Enregistrer fonctionnel directement.
+
+
+## V1.7
+- Suppression complète de la fenêtre modale.
+- Mini et Maxi sont de vrais champs HTML directement éditables sur les cartes.
+- Le clic sur la carte n'est plus utilisé pour ouvrir la fiche.
+- Un bouton séparé « Voir le détail » ouvre la fiche.
+- La simulation ne remplace pas le champ pendant que tu le modifies.

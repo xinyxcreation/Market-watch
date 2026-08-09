@@ -51,3 +51,11 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
 @media(max-width:650px){.threshold-detail{grid-template-columns:1fr 1fr}.threshold-detail .threshold-button{grid-column:1/-1}}
 
 .threshold-button{position:relative;z-index:20;pointer-events:auto;cursor:pointer}
+
+.threshold-edit{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 5px;position:relative;z-index:10}
+.threshold-edit label,.threshold-detail label{font-size:10px;color:var(--muted);font-weight:800}
+.threshold-edit input,.threshold-detail input{display:block;width:100%;margin-top:5px;background:var(--panel2);border:1px solid var(--line);color:var(--text);padding:10px 9px;border-radius:9px;font-size:14px;cursor:text;pointer-events:auto;user-select:text;-webkit-user-select:text}
+.threshold-edit input:focus,.threshold-detail input:focus{outline:2px solid var(--accent);border-color:var(--accent)}
+.detail-button{width:100%;margin-top:10px}
+.threshold-detail{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0}
+@media(max-width:650px){.threshold-detail{grid-template-columns:1fr}}
