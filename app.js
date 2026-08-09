@@ -355,12 +355,38 @@ function analysis(a){
 }
 
 function chartSvg(history,large=false){
-  const w=large?960:240,h=large?280:58,p=large?28:10;
-  const vals=history.length?history:[0,1];
-  const min=Math.min(...vals),max=Math.max(...vals),range=max-min||1;
-  const pts=vals.map((v,i)=>`${p+i*(w-2*p)/Math.max(1,vals.length-1)},${h-p-(v-min)*(h-2*p)/range}`).join(" ");
-  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="${large?3:3}" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  const w=large?960:320,h=large?280:72,p=large?28:8;
+  const vals=(history||[]).map(v=>typeof v==="object"?v.v:v).filter(Number.isFinite);
+  if(vals.length<2){
+    return `<div class="chart-no-data">7J · historique indisponible</div>`;
+  }
+  // Keep the actual 7-day series, only downsample visually if necessary.
+  const maxPoints=large?500:90;
+  let series=vals;
+  if(series.length>maxPoints){
+    const step=(series.length-1)/(maxPoints-1);
+    series=Array.from({length:maxPoints},(_,i)=>series[Math.round(i*step)]);
+  }
+  const min=Math.min(...series),max=Math.max(...series),range=max-min||Math.max(1,max*0.001);
+  const pts=series.map((v,i)=>{
+    const x=p+i*(w-2*p)/Math.max(1,series.length-1);
+    const y=h-p-(v-min)*(h-2*p)/range;
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-label="Évolution réelle sur 7 jours">
+    <polyline points="${pts}" fill="none" stroke="currentColor" stroke-width="${large?3:2.5}" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>`;
 }
+function weeklyHomeChart(a){
+  const points=a.chartHistory?.["7"];
+  if(!Array.isArray(points)||points.length<2) return `<div class="chart-no-data">7J · historique indisponible</div>`;
+  const vals=points.map(p=>p.v).filter(Number.isFinite);
+  return `<div class="weekly-home-chart">
+    ${chartSvg(vals,false)}
+    <div class="weekly-home-axis"><span>7 jours</span><span>${money(Math.min(...vals),a.type)} → ${money(Math.max(...vals),a.type)}</span></div>
+  </div>`;
+}
+
 function formatChartDate(ts,range){
   const d=new Date(ts);
   if(range==="1")return d.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
@@ -448,7 +474,7 @@ function dashboardRow(a){
     <div class="asset-list-main"><div><b class="ticker">${esc(a.symbol)}</b><div class="name">${esc(x.name)} · ${a.type==="crypto"?"Crypto":"Action"}</div></div><span class="badge ${z.state==="below"?"red":z.state==="above"?"green":"neutral"}">${status}</span></div>
     <div class="asset-list-price"><strong>${money(x.price,a.type)}</strong><span class="${x.change>=0?"positive":"negative"}">${x.change>=0?"+":""}${x.change.toFixed(2)} %</span></div>
     <div class="asset-list-scores"><span class="av-score" title="Achat"><b class="av-icon" style="${scoreStyle(an.buy.score)}">Ⓐ</b> <strong style="${scoreStyle(an.buy.score)}">${an.buy.score}%</strong></span><span class="av-score" title="Vente"><b class="av-icon" style="${scoreStyle(an.sell.score)}">Ⓥ</b> <strong style="${scoreStyle(an.sell.score)}">${an.sell.score}%</strong></span></div>
-    <div class="asset-list-chart">${chartSvg(x.chartHistory?.["7"]?.map(p=>p.v)||x.history)}</div>
+    <div class="asset-list-chart">${weeklyHomeChart(x)}</div>
     <div class="asset-list-range"><span>${money(a.min,a.type)}</span><span>${money(a.max,a.type)}</span></div>
   </article>`;
 }

@@ -321,3 +321,72 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
   .asset-search-wrap{grid-column:1/-1}
   .asset-add .primary{width:100%}
 }
+
+/* V4.6 — cartes accueil : même langage visuel que les anciennes cards,
+   mais en liste comme demandé. Le graphique est réel 7J et non éditable. */
+.asset-group{margin:0 0 28px}
+.asset-group + .asset-group{padding-top:2px}
+.asset-group-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}
+.asset-group-head h3{font-size:17px;margin:0;font-weight:900}
+.asset-group-head span{font-size:11px;color:var(--muted)}
+.asset-list{display:grid;gap:10px}
+
+.asset-list-row{
+  position:relative;
+  display:grid;
+  grid-template-columns:minmax(190px,1.25fr) minmax(150px,.8fr) 120px minmax(260px,1.35fr);
+  grid-template-rows:auto auto;
+  align-items:center;
+  column-gap:16px;
+  row-gap:5px;
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:var(--radius);
+  padding:14px 15px 11px;
+  min-height:104px;
+  cursor:pointer;
+  transition:transform .15s,border-color .15s,box-shadow .15s;
+}
+.asset-list-row:hover{transform:translateY(-1px);border-color:#3a444f}
+.asset-list-row.threshold-below{border:2px solid var(--red);box-shadow:0 0 18px rgba(255,91,104,.08)}
+.asset-list-row.threshold-above{border:2px solid var(--green);box-shadow:0 0 18px rgba(56,211,159,.08)}
+
+.asset-list-main{display:flex;justify-content:space-between;align-items:center;gap:10px;min-width:0;grid-column:1}
+.asset-list-main .ticker{font-size:18px}
+.asset-list-main .name{margin-top:3px}
+.asset-list-price{display:flex;align-items:baseline;gap:8px;white-space:nowrap;grid-column:2}
+.asset-list-price strong{font-size:22px;font-weight:900}
+.asset-list-price span{font-size:12px}
+.asset-list-scores{display:flex;gap:10px;justify-content:flex-start;grid-column:3;white-space:nowrap}
+.av-score{font-size:13px;font-weight:900}
+.av-score .av-icon{font-size:14px}
+.asset-list-chart{grid-column:4;grid-row:1/3;height:66px;min-width:0;color:#f0f2f5}
+.asset-list-chart svg{width:100%;height:100%;display:block}
+.weekly-home-chart{height:100%;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.weekly-home-chart svg{height:54px}
+.weekly-home-axis{display:flex;justify-content:space-between;gap:8px;color:var(--muted);font-size:9px;white-space:nowrap}
+.asset-list-range{
+  grid-column:1/4;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-size:10px;
+  color:var(--muted);
+  padding-top:2px;
+}
+.chart-no-data{height:100%;display:grid;place-items:center;color:var(--muted);font-size:10px}
+
+@media(max-width:900px){
+  .asset-list-row{grid-template-columns:minmax(160px,1fr) minmax(130px,.8fr) 100px}
+  .asset-list-chart{grid-column:1/-1;grid-row:auto;height:58px}
+  .asset-list-range{grid-column:1/-1}
+}
+@media(max-width:620px){
+  .asset-list-row{grid-template-columns:1fr auto;padding:13px;row-gap:8px}
+  .asset-list-main{grid-column:1/-1}
+  .asset-list-price{grid-column:1}
+  .asset-list-scores{grid-column:2}
+  .asset-list-chart{grid-column:1/-1;height:62px}
+  .asset-list-range{grid-column:1/-1}
+  .weekly-home-axis{font-size:8px}
+}
