@@ -31,3 +31,6 @@ section{margin:20px 0}.section-head{display:flex;align-items:center;justify-cont
 .detail-price.threshold-below{border:2px solid var(--red);border-radius:12px;padding:8px 12px}
 .detail-price.threshold-above{border:2px solid var(--green);border-radius:12px;padding:8px 12px}
 @media(max-width:650px){.threshold-detail{grid-template-columns:1fr}}
+
+.threshold-edit input,.threshold-detail input{cursor:text;pointer-events:auto;user-select:text;-webkit-user-select:text}
+.threshold-edit,.threshold-detail{position:relative;z-index:5}

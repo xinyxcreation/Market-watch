@@ -89,8 +89,8 @@ function card(a){
     </div>
     <div class="mini-chart">${chartSvg(x.history)}</div>
     <div class="threshold-edit">
-      <label>Mini <input type="number" step="any" data-threshold-index="${index}" data-threshold-field="min" value="${a.min}"></label>
-      <label>Maxi <input type="number" step="any" data-threshold-index="${index}" data-threshold-field="max" value="${a.max}"></label>
+      <label>Mini <input type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="min" value="${a.min}"></label>
+      <label>Maxi <input type="number" inputmode="decimal" step="any" data-threshold-index="${index}" data-threshold-field="max" value="${a.max}"></label>
     </div>
     <div class="range"><span>${money(a.min,a.type)}</span><span>${money(a.max,a.type)}</span></div>
     <div class="range-bar"><div class="range-fill" style="width:${pct}%"></div></div>
@@ -136,10 +136,15 @@ function show(screen){
   if(screen==="events")renderEvents();
 }
 document.addEventListener("click",e=>{
+  if(e.target.closest("input,select,textarea,button")) return;
   const open=e.target.closest("[data-open]"); if(open){show(open.dataset.open);return}
   const detail=e.target.closest("[data-detail]"); if(detail){const [type,symbol]=detail.dataset.detail.split(":");show("detail");renderDetail(type,symbol)}
   const rem=e.target.closest("[data-remove]"); if(rem){watch.splice(+rem.dataset.remove,1);save();renderWatchlist();renderDashboard()}
 });
+
+document.addEventListener("pointerdown",e=>{
+  if(e.target.closest("input,select,textarea,button")) e.stopPropagation();
+}, true);
 document.addEventListener("change",e=>{
   if(e.target.matches("[data-field]")){
     const i=+e.target.dataset.i,f=e.target.dataset.field;
@@ -195,3 +200,16 @@ setInterval(simulateMarket,5000);
 
 if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 renderDashboard();
+
+document.addEventListener("keydown",e=>{
+  if(!e.target.matches("[data-threshold-index]")) return;
+  if(e.key==="Enter"){
+    e.preventDefault();
+    e.target.blur();
+  }
+});
+document.addEventListener("blur",e=>{
+  if(!e.target.matches("[data-threshold-index]")) return;
+  const i=+e.target.dataset.thresholdIndex,f=e.target.dataset.thresholdField;
+  updateThreshold(i,f,e.target.value);
+}, true);

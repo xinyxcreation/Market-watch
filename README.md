@@ -44,3 +44,10 @@ Les scores et indications sont des aides à la lecture du marché et ne constitu
 - Mini/maxi modifiables aussi depuis la fiche détaillée d'un actif.
 - La fiche se met à jour immédiatement après modification.
 - Le cadre rouge/vert suit immédiatement le nouveau seuil.
+
+
+## V1.3
+- Correction du clic sur les champs Mini/Maxi.
+- Les champs ne déclenchent plus l'ouverture de la fiche au clic.
+- Validation par perte de focus ou touche Entrée.
+- Correction du cache du service worker.
